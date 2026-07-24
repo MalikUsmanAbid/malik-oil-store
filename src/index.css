@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cinzel", serif;
+  --font-sans: "Inter", sans-serif;
+  --color-gold-50: #faf8f2;
+  --color-gold-100: #f2e5c4;
+  --color-gold-500: #c5a059;
+  --color-gold-600: #b38e49;
+  --color-gold-700: #997538;
+  --color-emerald-950: #052415;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-[#FAF9F5] text-gray-800 antialiased selection:bg-gold-500 selection:text-white;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
+/* Custom scrollbars for rich dashboard feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c5a059;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #997538;
+}
+
+/* Print Styles */
+@media print {
+  /* Hide background elements during print */
+  body > *:not(#root) {
+    display: none !important;
+  }
+
+  /* Make modal container fill printable page */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  /* Target printable invoice card */
+  #printable-invoice {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Hide print buttons and controls */
+  .print\:hidden {
+    display: none !important;
+  }
+}
