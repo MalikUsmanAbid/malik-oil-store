@@ -343,7 +343,8 @@ export async function placeOrder(
         }
       } catch (err) {
         console.warn('Could not update product stock in Firestore:', err);
-        throw err;
+        // Do not mark the customer order as failed if only the optional
+        // inventory sync is unavailable. The order document is already saved.
       }
     }
   } catch (err) {
