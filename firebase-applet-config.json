@@ -1,12 +1,12 @@
 {
-  "projectId": "innate-access-pp497",
-  "appId": "1:985612950636:web:ba1055a31373fffbf4cc49",
-  "apiKey": "AIzaSyDnRfEKOmBvavpYtnkpBY9UZdoBJNd45nM",
-  "authDomain": "innate-access-pp497.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-malikoilstore-db6c7f8d-63f9-4c80-ac5c-f6f8711c0fae",
-  "storageBucket": "innate-access-pp497.firebasestorage.app",
-  "messagingSenderId": "985612950636",
+  "projectId": "malik-oil-expellers",
+  "appId": "1:1092766258026:web:8f77e1d32d60d9d2a6cb13",
+  "apiKey": "AIzaSyCAmiJb5-G545WnIjfm_nG1D8T2MUePOvo",
+  "authDomain": "malik-oil-expellers.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "malik-oil-expellers.firebasestorage.app",
+  "messagingSenderId": "1092766258026",
   "measurementId": "",
-  "oAuthClientId": "985612950636-dq7unr11occ31mutsdfqcv0a839me5b9.apps.googleusercontent.com",
+  "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }
