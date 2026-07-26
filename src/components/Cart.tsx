@@ -354,7 +354,7 @@ export default function Cart({
       items: orderItems,
       subtotal,
       discount,
-      discountCode: appliedPromo || undefined,
+      ...(appliedPromo ? { discountCode: appliedPromo } : {}),
       tax,
       shipping,
       total,
