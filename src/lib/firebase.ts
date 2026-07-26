@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import config from '../../firebase-applet-config.json';
 
@@ -20,6 +20,8 @@ const databaseId = config.firestoreDatabaseId && config.firestoreDatabaseId !== 
   ? config.firestoreDatabaseId
   : undefined;
 
-export const db = getFirestore(app, databaseId);
+// Firestore rejects object fields whose value is `undefined` by default.
+// Store forms contain optional fields, so ignore those fields at the SDK boundary.
+export const db = initializeFirestore(app, { ignoreUndefinedProperties: true }, databaseId);
 export const auth = getAuth(app);
 export default app;
