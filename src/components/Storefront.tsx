@@ -221,7 +221,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
   const generateWhatsAppBulkLink = () => {
     if (!selectedBulkProd) return '#';
     const text = `Assalam-o-Alaikum Malik Oils! Mujhe wholesale/bulk khareedari ki inquiry karni hai:\n\n*Product:* ${selectedBulkProd.name}\n*Quantity:* ${bulkQuantity} ${selectedBulkProd.unit}\n*Regular Price:* Rs. ${regularUnitPrice} / ${selectedBulkProd.unit}\n*Wholesale Price Offered:* Rs. ${wholesaleUnitPrice} / ${selectedBulkProd.unit}\n*Total Bulk Quote:* Rs. ${bulkTotalWholesale.toLocaleString()}\n*Total Savings:* Rs. ${bulkSavings.toLocaleString()}\n\nMeherbani farma kar booking aur Samundri unit se cargo delivery ki mazeed details bheinjiye. Shukriya!`;
-    return `https://wa.me/923001234567?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/923007618236?text=${encodeURIComponent(text)}`;
   };
 
   // Cattle Feed Dairy Planner States
@@ -1088,7 +1088,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
             <div className="mt-5 pt-4 border-t border-gray-200 flex justify-between items-center text-xs font-bold text-emerald-950">
               <span>Have specific health queries? Consult with our experts.</span>
               <a
-                href="https://wa.me/923001234567?text=Assalam-o-Alaikum! Mujhe oil selection aur health benefits ke hawale se poochhna hai."
+                href="https://wa.me/923007618236?text=Assalam-o-Alaikum! Mujhe oil selection aur health benefits ke hawale se poochhna hai."
                 target="_blank"
                 rel="noreferrer"
                 className="px-4 py-2 bg-emerald-950 text-gold-500 hover:bg-emerald-900 rounded-xl transition-all flex items-center gap-1.5"
@@ -1167,7 +1167,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
 
             <div className="mt-5 pt-4 border-t border-gray-200">
               <a
-                href={`https://wa.me/923001234567?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Mujhe ${deliveryCity} ke liye delivery timing aur order confirmation chahiye.`)}`}
+                href={`https://wa.me/923007618236?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Mujhe ${deliveryCity} ke liye delivery timing aur order confirmation chahiye.`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 bg-emerald-950 hover:bg-emerald-900 text-gold-500 font-bold text-xs tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
@@ -1625,7 +1625,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
 
                     <div className="mt-6">
                       <a
-                        href={`https://wa.me/923001234567?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Main ${subBagsCount} Bags per month ka dairy farm subscription plan book karwana chahta hoon (${subFrequency === 'monthly' ? 'Every 1st' : '1st & 15th'}). Meherbani farma kar commercial details bheinjiye.`)}`}
+                        href={`https://wa.me/923007618236?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Main ${subBagsCount} Bags per month ka dairy farm subscription plan book karwana chahta hoon (${subFrequency === 'monthly' ? 'Every 1st' : '1st & 15th'}). Meherbani farma kar commercial details bheinjiye.`)}`}
                         target="_blank"
                         rel="noreferrer"
                         className="w-full py-3.5 bg-green-600 hover:bg-green-500 text-white font-bold text-xs tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"

@@ -596,7 +596,7 @@ export default function Cart({
                         <input
                           type="tel"
                           required
-                          placeholder="e.g. 0300-1234567"
+                          placeholder="e.g. 0300-7618236"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           className="w-full bg-white border border-gray-200 rounded-lg px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-gold-500"

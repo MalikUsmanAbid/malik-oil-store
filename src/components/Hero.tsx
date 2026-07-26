@@ -13,7 +13,7 @@ export default function Hero({ onOrderNowClick, storeSettings }: HeroProps) {
   const estYear = storeSettings?.estYear || '1970';
   const heroTitle = storeSettings?.heroTitle || 'MALIK OIL EXPELLERS';
   const heroSubtitle = storeSettings?.heroSubtitle || 'Pure Oils, Trusted for Generations. Traditional wood-pressed natural oils and organic livestock feed.';
-  const phone = storeSettings?.phone || '0300-1234567';
+  const phone = storeSettings?.phone || '0300-7618236';
   const resolveHeroImage = (url?: string) => {
     if (!url || url === '/images/hero.jpg' || url.includes('hero') || url.includes('/src/assets/')) return heroBanner;
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;

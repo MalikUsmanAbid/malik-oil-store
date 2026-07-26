@@ -37,8 +37,8 @@ export default function Header({
     prevCartCount.current = cartCount;
   }, [cartCount]);
 
-  const phone = storeSettings?.phone || '0300-1234567';
-  const whatsapp = storeSettings?.whatsapp || '923001234567';
+  const phone = storeSettings?.phone || '0300-7618236';
+  const whatsapp = storeSettings?.whatsapp || '923007618236';
   const address = storeSettings?.address || 'Vehari Road, Samundri';
   const estYear = storeSettings?.estYear || '1970';
   const announcementText = storeSettings?.announcementText || '🚚 Free Express Shipping across Pakistan on orders above Rs. 3,500!';
