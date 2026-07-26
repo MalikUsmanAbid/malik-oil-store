@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Products catalog: readable by all, writable for store management
+    match /products/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Categories: readable by all, writable for store management
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Store Settings: readable by all, writable for admin
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Discount Codes: readable by all, writable for admin
+    match /discountCodes/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Customer Orders: readable, creatable & updatable by all
+    match /orders/{id} {
+      allow read, create, update: if true;
+      allow delete: if request.auth != null;
+    }
+
+    // Customers: readable, creatable & updatable by all
+    match /customers/{id} {
+      allow read, create, update: if true;
+      allow delete: if request.auth != null;
+    }
+
+    // Customer Reviews: readable and creatable by all
+    match /reviews/{id} {
+      allow read, create: if true;
+      allow update, delete: if true;
+    }
+  }
+}
