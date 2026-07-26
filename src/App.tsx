@@ -183,7 +183,9 @@ export default function App() {
       setCartItems([]);
     } catch (err) {
       console.error('Error saving order to Firestore:', err);
-      alert('Order cloud database me save nahi ho saka. Please try again.');
+      const firebaseError = err as { code?: string; message?: string };
+      const detail = firebaseError?.code || firebaseError?.message || 'Unknown Firebase error';
+      alert(`Order cloud database me save nahi ho saka: ${detail}`);
     }
   };
 
