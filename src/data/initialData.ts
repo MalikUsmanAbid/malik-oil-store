@@ -8,7 +8,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   phone: '0300-7618236',
   whatsapp: '923007618236',
   email: 'info@malikoil.pk',
-  address: 'Vehari Road, Samundri, District Faisalabad, Punjab, Pakistan',
+  address: 'Tandila Road, Samundri, District Faisalabad, Punjab, Pakistan',
   announcementText: '🚚 Free Express Shipping across Pakistan on orders above Rs. 3,500! | 100% Pure Organic Cold-Pressed Oils',
   showAnnouncement: true,
   heroTitle: 'Purity Direct From Our Expellers',

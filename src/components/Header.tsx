@@ -39,7 +39,7 @@ export default function Header({
 
   const phone = storeSettings?.phone || '0300-7618236';
   const whatsapp = storeSettings?.whatsapp || '923007618236';
-  const address = storeSettings?.address || 'Vehari Road, Samundri';
+  const address = storeSettings?.address || 'Tandila Road, Samundri';
   const estYear = storeSettings?.estYear || '1970';
   const announcementText = storeSettings?.announcementText || '🚚 Free Express Shipping across Pakistan on orders above Rs. 3,500!';
   const showAnnouncement = storeSettings?.showAnnouncement ?? true;

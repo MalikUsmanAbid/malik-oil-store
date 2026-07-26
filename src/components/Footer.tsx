@@ -10,7 +10,7 @@ interface FooterProps {
 }
 
 export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }: FooterProps) {
-  const address = storeSettings?.address || 'Vehari Road, Samundri, Faisalabad, Pakistan';
+  const address = storeSettings?.address || 'Tandila Road, Samundri, Faisalabad, Pakistan';
   const phone = storeSettings?.phone || '0300-7618236';
   const whatsapp = storeSettings?.whatsapp || '923007618236';
   const email = storeSettings?.email || 'info@malikoil.pk';
