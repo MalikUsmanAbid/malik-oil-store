@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDoc,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -89,38 +90,6 @@ function setLocal<T>(key: string, value: T): void {
 // 1. AUTO SEED & LOCALSTORAGE MIGRATION
 // ==========================================
 
-export async function initializeAndMigrateFirestore(): Promise<void> {
-  try {
-    const productsSnapshot = await getDocs(collection(db, 'products'));
-
-    if (productsSnapshot.empty) {
-      console.log('Firestore is empty. Starting initial seed...');
-
-      const productsToSave: Product[] = getLocal('malik_oil_products', INITIAL_PRODUCTS);
-      const ordersToSave: Order[] = getLocal('malik_oil_orders', INITIAL_ORDERS);
-      const customersToSave: Customer[] = getLocal('malik_oil_customers', INITIAL_CUSTOMERS);
-      const settingsToSave: StoreSettings = getLocal('malik_oil_store_settings', DEFAULT_STORE_SETTINGS);
-      const discountsToSave: DiscountCode[] = getLocal('malik_oil_discount_codes', INITIAL_DISCOUNT_CODES);
-      const reviewsToSave: Review[] = getLocal('malik_oil_reviews', INITIAL_REVIEWS);
-
-      // Batch write for performance
-      const batch = writeBatch(db);
-
-      productsToSave.forEach(p => batch.set(doc(db, 'products', p.id), p));
-      ordersToSave.forEach(o => batch.set(doc(db, 'orders', o.id), o));
-      customersToSave.forEach(c => batch.set(doc(db, 'customers', c.id), c));
-      batch.set(doc(db, 'settings', 'main'), settingsToSave);
-      discountsToSave.forEach(d => batch.set(doc(db, 'discountCodes', d.id), d));
-      reviewsToSave.forEach(r => batch.set(doc(db, 'reviews', r.id), r));
-
-      await batch.commit();
-      console.log('Successfully seeded data to Firestore.');
-    }
-  } catch (error) {
-    console.error('Error during Firestore initialization:', error);
-  }
-}
-
 // ==========================================
 // 2. REAL-TIME SUBSCRIBERS (OBSERVERS)
 // ==========================================
@@ -137,12 +106,8 @@ export function subscribeToProducts(
       snapshot.forEach(docSnap => {
         prods.push({ id: docSnap.id, ...docSnap.data() } as Product);
       });
-      if (prods.length > 0) {
-        setLocal('malik_oil_products', prods);
-        onData(prods);
-      } else {
-        onData(getLocal('malik_oil_products', INITIAL_PRODUCTS));
-      }
+      setLocal('malik_oil_products', prods);
+      onData(prods);
     },
     err => {
       console.error('Error listening to products:', err);
@@ -164,12 +129,12 @@ export function subscribeToOrders(
       snapshot.forEach(docSnap => {
         orders.push({ id: docSnap.id, ...docSnap.data() } as Order);
       });
-      setLocal('malik_oil_orders', orders);
+
       onData(orders);
     },
     err => {
       console.error('Error listening to orders:', err);
-      onData(getLocal('malik_oil_orders', INITIAL_ORDERS));
+      onData([]);
       if (onError) onError(err);
     }
   );
@@ -187,12 +152,12 @@ export function subscribeToCustomers(
       snapshot.forEach(docSnap => {
         custs.push({ id: docSnap.id, ...docSnap.data() } as Customer);
       });
-      setLocal('malik_oil_customers', custs);
+
       onData(custs);
     },
     err => {
       console.error('Error listening to customers:', err);
-      onData(getLocal('malik_oil_customers', INITIAL_CUSTOMERS));
+      onData([]);
       if (onError) onError(err);
     }
   );
@@ -234,12 +199,8 @@ export function subscribeToDiscountCodes(
       snapshot.forEach(docSnap => {
         codes.push({ id: docSnap.id, ...docSnap.data() } as DiscountCode);
       });
-      if (codes.length > 0) {
-        setLocal('malik_oil_discount_codes', codes);
-        onData(codes);
-      } else {
-        onData(getLocal('malik_oil_discount_codes', INITIAL_DISCOUNT_CODES));
-      }
+      setLocal('malik_oil_discount_codes', codes);
+      onData(codes);
     },
     err => {
       console.error('Error listening to discount codes:', err);
@@ -308,56 +269,24 @@ export async function updateProductPrice(productId: string, newPrice: number): P
   setLocal('malik_oil_products', existing.map(p => (p.id === productId ? { ...p, price: newPrice } : p)));
 }
 
-export async function placeOrder(
-  newOrder: Order,
-  productsList: Product[],
-  customersList: Customer[]
-): Promise<void> {
-  // Update local orders
-  const existingOrders = getLocal<Order[]>('malik_oil_orders', INITIAL_ORDERS);
-  const updatedOrders = [newOrder, ...existingOrders.filter(o => o.id !== newOrder.id)];
-  setLocal('malik_oil_orders', updatedOrders);
-
-  // Update local products stock
-  const existingProducts = getLocal<Product[]>('malik_oil_products', INITIAL_PRODUCTS);
-  const updatedProducts = existingProducts.map(p => {
-    const item = newOrder.items.find(i => i.productId === p.id);
-    if (item) {
-      return { ...p, stock: Math.max(0, p.stock - item.quantity) };
-    }
-    return p;
+export async function placeOrder(newOrder: Order & { challenge?: string }): Promise<Order> {
+  const base = import.meta.env.VITE_ORDER_API_URL;
+  if (!base) throw new Error('Secure checkout setup pending. Please contact the shop.');
+  const response = await fetch(`${base.replace(/\/$/, '')}/orders`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order: newOrder, challenge: newOrder.challenge })
   });
-  setLocal('malik_oil_products', updatedProducts);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Order could not be saved');
+  return result.order;
+}
 
-  try {
-    const orderRef = doc(db, 'orders', newOrder.id);
-    await setDoc(orderRef, newOrder);
-
-    for (const item of newOrder.items) {
-      try {
-        const existingProd = productsList.find(p => p.id === item.productId);
-        if (existingProd) {
-          const prodRef = doc(db, 'products', item.productId);
-          const updatedStock = Math.max(0, existingProd.stock - item.quantity);
-          await setDoc(prodRef, { stock: updatedStock }, { merge: true });
-        }
-      } catch (err) {
-        console.warn('Could not update product stock in Firestore:', err);
-        // Do not mark the customer order as failed if only the optional
-        // inventory sync is unavailable. The order document is already saved.
-      }
-    }
-  } catch (err) {
-    console.warn('Firestore placeOrder failed, saved to browser storage:', err);
-    throw err;
-  }
+export async function isStoreAdmin(uid: string): Promise<boolean> {
+  try { return (await getDoc(doc(db, 'admins', uid))).exists(); }
+  catch { return false; }
 }
 
 export async function updateOrderStatus(orderId: string, status: Order['orderStatus']): Promise<void> {
-  const existingOrders = getLocal<Order[]>('malik_oil_orders', INITIAL_ORDERS);
-  const updatedOrders = existingOrders.map(o => (o.id === orderId ? { ...o, orderStatus: status } : o));
-  setLocal('malik_oil_orders', updatedOrders);
-
   try {
     const ref = doc(db, 'orders', orderId);
     await updateDoc(ref, { orderStatus: status });
@@ -368,10 +297,6 @@ export async function updateOrderStatus(orderId: string, status: Order['orderSta
 }
 
 export async function updatePaymentStatus(orderId: string, status: Order['paymentStatus']): Promise<void> {
-  const existingOrders = getLocal<Order[]>('malik_oil_orders', INITIAL_ORDERS);
-  const updatedOrders = existingOrders.map(o => (o.id === orderId ? { ...o, paymentStatus: status } : o));
-  setLocal('malik_oil_orders', updatedOrders);
-
   try {
     const ref = doc(db, 'orders', orderId);
     await updateDoc(ref, { paymentStatus: status });
@@ -382,10 +307,6 @@ export async function updatePaymentStatus(orderId: string, status: Order['paymen
 }
 
 export async function deleteOrder(orderId: string): Promise<void> {
-  const existingOrders = getLocal<Order[]>('malik_oil_orders', INITIAL_ORDERS);
-  const updatedOrders = existingOrders.filter(o => o.id !== orderId);
-  setLocal('malik_oil_orders', updatedOrders);
-
   try {
     const ref = doc(db, 'orders', orderId);
     await deleteDoc(ref);

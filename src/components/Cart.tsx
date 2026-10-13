@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ShoppingCart, Trash2, Shield, CreditCard, CheckCircle, Truck, Info, Download, ChevronRight, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Product, Order, OrderItem, DiscountCode } from '../types';
+import SecurityChallenge from './SecurityChallenge';
+import { TRANSFER_METHODS, RECEIVING_ACCOUNT } from '../data/paymentMethods';
+import { StoreSettings } from '../types';
 import { TAX_RATES, INITIAL_DISCOUNT_CODES } from '../data/initialData';
 
 interface CartProps {
@@ -13,7 +14,8 @@ interface CartProps {
   discountCodes?: DiscountCode[];
   onUpdateQuantity: (productId: string, newQuantity: number) => void;
   onRemoveItem: (productId: string) => void;
-  onPlaceOrder: (order: Order) => void;
+  storeSettings: StoreSettings;
+  onPlaceOrder: (order: Order & { challenge: string }) => Promise<Order>;
 }
 
 export default function Cart({
@@ -24,6 +26,7 @@ export default function Cart({
   onUpdateQuantity,
   onRemoveItem,
   onPlaceOrder,
+  storeSettings,
 }: CartProps) {
   const [step, setStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
   
@@ -34,7 +37,7 @@ export default function Cart({
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [selectedProvinceTax, setSelectedProvinceTax] = useState(TAX_RATES[0]); // Default to Punjab
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Card' | 'Bank Transfer'>('COD');
+  const [paymentMethod, setPaymentMethod] = useState<Order['paymentMethod']>('COD');
 
   // Promo Code States
   const [promoCode, setPromoCode] = useState('');
@@ -42,22 +45,25 @@ export default function Cart({
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
 
-  // Credit Card Simulation State
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // Completed Order Placeholder
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [challenge, setChallenge] = useState('');
+  const [challengeVersion, setChallengeVersion] = useState(0);
+  const pendingOrder = useRef<{ fingerprint: string; order: Order } | null>(null);
+  const submitting = useRef(false);
 
   // Direct Download PDF Invoice Handler (No Print Dialog)
   const handleDownloadOrderPdf = async () => {
     if (!placedOrder || isDownloadingPdf) return;
     setIsDownloadingPdf(true);
+    const escape = (text: string) => text.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
+    const safeOrder = { ...placedOrder, customerName: escape(placedOrder.customerName), customerEmail: escape(placedOrder.customerEmail), customerPhone: escape(placedOrder.customerPhone), address: escape(placedOrder.address), city: escape(placedOrder.city), items: placedOrder.items.map(item => ({ ...item, productName: escape(item.productName), unit: escape(item.unit) })) };
 
     try {
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas")]);
       // Create temporary offscreen container
       const container = document.createElement('div');
       container.style.position = 'absolute';
@@ -69,7 +75,7 @@ export default function Cart({
       container.style.fontFamily = 'sans-serif';
       container.style.color = '#111827';
 
-      const dateStr = new Date(placedOrder.orderDate).toLocaleDateString('en-PK', {
+      const dateStr = new Date(safeOrder.orderDate).toLocaleDateString('en-PK', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -85,7 +91,7 @@ export default function Cart({
           </div>
           <div style="text-align: right; background: #ecfdf5; padding: 10px; border-radius: 8px; border: 1px solid #a7f3d0;">
             <div style="font-size: 9px; font-weight: bold; color: #6b7280; text-transform: uppercase;">OFFICIAL TAX INVOICE</div>
-            <div style="font-size: 16px; font-weight: 900; color: #022c22;">${placedOrder.invoiceNo}</div>
+            <div style="font-size: 16px; font-weight: 900; color: #022c22;">${safeOrder.invoiceNo}</div>
             <div style="font-size: 10px; color: #4b5563;">Date: ${dateStr}</div>
           </div>
         </div>
@@ -97,14 +103,14 @@ export default function Cart({
           <div style="display: flex; justify-content: space-between; font-size: 11px;">
             <div>
               <span style="font-size: 9px; color: #6b7280; display: block; font-weight: bold;">CUSTOMER NAME:</span>
-              <strong style="font-size: 13px; color: #022c22;">${placedOrder.customerName}</strong>
-              <div style="color: #065f46; font-weight: bold; margin-top: 2px;">Phone: ${placedOrder.customerPhone}</div>
-              ${placedOrder.customerEmail ? `<div style="color: #4b5563; font-size: 10px;">Email: ${placedOrder.customerEmail}</div>` : ''}
+              <strong style="font-size: 13px; color: #022c22;">${safeOrder.customerName}</strong>
+              <div style="color: #065f46; font-weight: bold; margin-top: 2px;">Phone: ${safeOrder.customerPhone}</div>
+              ${safeOrder.customerEmail ? `<div style="color: #4b5563; font-size: 10px;">Email: ${safeOrder.customerEmail}</div>` : ''}
             </div>
             <div style="text-align: right; max-width: 250px;">
               <span style="font-size: 9px; color: #6b7280; display: block; font-weight: bold;">DELIVERY ADDRESS:</span>
-              <div style="color: #1f2937; font-weight: 500;">${placedOrder.address}</div>
-              <strong style="color: #022c22; display: block; margin-top: 2px;">${placedOrder.city}, ${placedOrder.province}</strong>
+              <div style="color: #1f2937; font-weight: 500;">${safeOrder.address}</div>
+              <strong style="color: #022c22; display: block; margin-top: 2px;">${safeOrder.city}, ${safeOrder.province}</strong>
             </div>
           </div>
         </div>
@@ -124,7 +130,7 @@ export default function Cart({
               </tr>
             </thead>
             <tbody>
-              ${placedOrder.items.map((it, idx) => `
+              ${safeOrder.items.map((it, idx) => `
                 <tr style="border-bottom: 1px solid #f3f4f6;">
                   <td style="padding: 6px 8px; color: #9ca3af;">${idx + 1}</td>
                   <td style="padding: 6px 8px; font-weight: bold; color: #1f2937;">${it.productName}</td>
@@ -146,25 +152,25 @@ export default function Cart({
           <div style="width: 200px; font-size: 11px; text-align: right;">
             <div style="display: flex; justify-content: space-between; color: #4b5563; margin-bottom: 2px;">
               <span>Subtotal:</span>
-              <span>Rs. ${placedOrder.subtotal.toLocaleString()}</span>
+              <span>Rs. ${safeOrder.subtotal.toLocaleString()}</span>
             </div>
-            ${placedOrder.discount && placedOrder.discount > 0 ? `
+            ${safeOrder.discount && safeOrder.discount > 0 ? `
               <div style="display: flex; justify-content: space-between; color: #059669; font-weight: bold; margin-bottom: 2px;">
-                <span>Discount (${placedOrder.discountCode || 'Promo'}):</span>
-                <span>-Rs. ${placedOrder.discount.toLocaleString()}</span>
+                <span>Discount (${safeOrder.discountCode || 'Promo'}):</span>
+                <span>-Rs. ${safeOrder.discount.toLocaleString()}</span>
               </div>
             ` : ''}
             <div style="display: flex; justify-content: space-between; color: #4b5563; margin-bottom: 2px;">
               <span>GST Tax:</span>
-              <span>Rs. ${placedOrder.tax.toLocaleString()}</span>
+              <span>Rs. ${safeOrder.tax.toLocaleString()}</span>
             </div>
             <div style="display: flex; justify-content: space-between; color: #4b5563; margin-bottom: 4px;">
               <span>Delivery Charges:</span>
-              <span>Rs. ${placedOrder.shipping.toLocaleString()}</span>
+              <span>Rs. ${safeOrder.shipping.toLocaleString()}</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-weight: 900; color: #022c22; font-size: 13px; border-top: 2px solid #022c22; padding-top: 4px;">
               <span>Net Total:</span>
-              <span>Rs. ${placedOrder.total.toLocaleString()}</span>
+              <span>Rs. ${safeOrder.total.toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -197,7 +203,7 @@ export default function Cart({
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`Invoice-${placedOrder.invoiceNo}.pdf`);
+      pdf.save(`Invoice-${safeOrder.invoiceNo}.pdf`);
     } catch (error) {
       console.error('PDF Download error:', error);
       alert('Failed to generate PDF file. Please try again.');
@@ -218,35 +224,18 @@ export default function Cart({
 
   let discount = 0;
   if (appliedPromo) {
-    if (activeDiscountCodeObj) {
+    if (activeDiscountCodeObj && subtotal >= (activeDiscountCodeObj.minOrderAmount || 0)) {
       if (activeDiscountCodeObj.type === 'percentage') {
         discount = Math.round((subtotal * activeDiscountCodeObj.value) / 100);
       } else if (activeDiscountCodeObj.type === 'flat') {
         discount = Math.min(subtotal, activeDiscountCodeObj.value);
       }
-    } else {
-      // Fallback legacy code handling
-      if (appliedPromo === 'MALIK10') discount = Math.round(subtotal * 0.10);
-      else if (appliedPromo === 'RAMADAN20') discount = Math.round(subtotal * 0.20);
-      else if (appliedPromo === 'ASLI200') discount = Math.min(subtotal, 200);
-      else if (appliedPromo === 'SAMUNDRI15') discount = Math.round(subtotal * 0.15);
     }
   }
 
-  // Tax calculation based on province selection
-  let tax = Math.round(subtotal * selectedProvinceTax.rate);
-  if (appliedPromo === 'FREETAX') {
-    tax = 0;
-  }
-  
-  // Heavy shipping rate if Khall or Wanda is in the cart
-  const containsHeavyItems = cartItems.some(
-    (item) => item.product.category === 'By-Product' || item.product.category === 'Animal Feed'
-  );
-  let shipping = subtotal === 0 ? 0 : containsHeavyItems ? 1000 : 250;
-  if (appliedPromo === 'FREEFRT') {
-    shipping = 0;
-  }
+  const tax = Math.round((subtotal - discount) * storeSettings.taxRatePercent / 100);
+  const shipping = subtotal === 0 || (storeSettings.freeShippingThreshold > 0 && subtotal >= storeSettings.freeShippingThreshold)
+    ? 0 : storeSettings.standardShippingRate;
 
   const total = Math.max(0, subtotal - discount + tax + shipping);
 
@@ -273,18 +262,6 @@ export default function Cart({
       } else {
         setPromoSuccess(`${matched.code} lag gaya! Rs. ${matched.value.toLocaleString()} flat discount mil gaya hai.`);
       }
-    } else if (code === 'MALIK10') {
-      setAppliedPromo('MALIK10');
-      setPromoSuccess('MALIK10 lag gaya! Subtotal par 10% discount mil gaya hai.');
-    } else if (code === 'RAMADAN20') {
-      setAppliedPromo('RAMADAN20');
-      setPromoSuccess('RAMADAN20 lag gaya! Subtotal par 20% discount mil gaya hai.');
-    } else if (code === 'FREETAX') {
-      setAppliedPromo('FREETAX');
-      setPromoSuccess('FREETAX lag gaya! 100% Tax maaf ho gaya hai.');
-    } else if (code === 'FREEFRT') {
-      setAppliedPromo('FREEFRT');
-      setPromoSuccess('FREEFRT lag gaya! Delivery shipping bilkul free ho gayi hai.');
     } else {
       setPromoError('Ghalat promo code! Dobara check karke lagayein.');
     }
@@ -311,27 +288,23 @@ export default function Cart({
   };
 
   const handleCheckoutSubmit = async () => {
-    if (paymentMethod === 'Card') {
-      if (cardNumber.length < 16 || !cardExpiry || cardCvv.length < 3) {
-        alert('Please enter valid credit card details.');
-        return;
-      }
-      setIsProcessingPayment(true);
-      
-      // Simulate secure gateway delay
-      setTimeout(async () => {
-        await completeOrder();
-        setIsProcessingPayment(false);
-      }, 1800);
-    } else {
-      setIsProcessingPayment(true);
+    if (submitting.current || cartItems.length === 0 || !challenge) return;
+    submitting.current = true;
+    setIsProcessingPayment(true);
+    try {
       await completeOrder();
+    } catch (err) {
+      console.warn('Order was not confirmed:', err);
+    } finally {
+      submitting.current = false;
       setIsProcessingPayment(false);
+      setChallenge('');
+      setChallengeVersion(v => v + 1);
     }
   };
 
   const completeOrder = async () => {
-    const nextInvoiceNo = 'MEO-' + Math.floor(1000 + Math.random() * 9000);
+    const nextInvoiceNo = 'MEO-' + crypto.randomUUID().replaceAll('-', '').slice(0, 16).toUpperCase();
     const orderItems: OrderItem[] = cartItems.map((item) => ({
       id: 'oi-' + Math.random().toString(36).substr(2, 9),
       productId: item.product.id,
@@ -342,10 +315,10 @@ export default function Cart({
     }));
 
     const newOrder: Order = {
-      id: 'ord-' + Date.now(),
+      id: 'ord-' + crypto.randomUUID(),
       invoiceNo: nextInvoiceNo,
       customerName: name,
-      customerEmail: email || `${name.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+      customerEmail: email.trim(),
       customerPhone: phone,
       address,
       city,
@@ -359,30 +332,26 @@ export default function Cart({
       shipping,
       total,
       paymentMethod,
-      paymentStatus: paymentMethod === 'Card' ? 'Paid' : 'Unpaid',
+      paymentStatus: 'Unpaid',
       orderStatus: 'Pending',
     };
 
-    try {
-      await onPlaceOrder(newOrder);
-    } catch (err) {
-      console.warn('Error placing order:', err);
-    }
-
-    setPlacedOrder(newOrder);
+    const fingerprint = JSON.stringify({ ...newOrder, id: '', invoiceNo: '', orderDate: '', items: newOrder.items.map(({ id, ...item }) => item) });
+    if (!pendingOrder.current || pendingOrder.current.fingerprint !== fingerprint) pendingOrder.current = { fingerprint, order: newOrder };
+    const confirmed = await onPlaceOrder({ ...pendingOrder.current.order, challenge });
+    setPlacedOrder(confirmed);
+    pendingOrder.current = null;
     setStep('success');
   };
 
   const handleResetCart = () => {
+    pendingOrder.current = null;
     setStep('cart');
     setName('');
     setEmail('');
     setPhone('');
     setAddress('');
     setCity('');
-    setCardNumber('');
-    setCardExpiry('');
-    setCardCvv('');
     onClose();
   };
 
@@ -502,22 +471,12 @@ export default function Cart({
                     </div>
                   )}
 
-                  {/* Dynamic Alert Banner for shipping weight */}
-                  {containsHeavyItems && cartItems.length > 0 && (
-                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200/50 flex gap-2.5 items-start">
-                      <Truck className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div className="text-[10px] text-amber-800">
-                        <span className="font-bold">Heavy Shipment Alert:</span> This order contains bulky animal feed bags (Khall/Wanda). Heavy-weight delivery fee of Rs. 1,000 applies instead of standard rates.
-                      </div>
-                    </div>
-                  )}
-
                   {/* Promo Coupons Section */}
                   {cartItems.length > 0 && (
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5 space-y-2 mt-4 text-xs">
                       <div className="flex justify-between items-center">
                         <span className="text-[10px] uppercase font-bold text-gray-500">Izafi Discount / Coupon Code</span>
-                        <span className="text-[9px] text-emerald-900 font-bold bg-amber-100 px-1.5 py-0.5 rounded">Codes: MALIK10, RAMADAN20, FREETAX</span>
+                        <span className="text-[9px] text-emerald-900 font-bold bg-amber-100 px-1.5 py-0.5 rounded">Available shop discounts</span>
                       </div>
                       
                       {appliedPromo ? (
@@ -693,29 +652,12 @@ export default function Cart({
                         💵 COD
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('Card')}
-                        className={`p-3.5 rounded-xl border text-center font-bold tracking-wide transition-all cursor-pointer ${
-                          paymentMethod === 'Card'
-                            ? 'bg-emerald-950 text-gold-500 border-emerald-950 shadow-md'
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        💳 Card
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('Bank Transfer')}
-                        className={`p-3.5 rounded-xl border text-center font-bold tracking-wide transition-all cursor-pointer ${
-                          paymentMethod === 'Bank Transfer'
-                            ? 'bg-emerald-950 text-gold-500 border-emerald-950 shadow-md'
-                            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        🏦 Bank
-                      </button>
+                      {TRANSFER_METHODS.map(method => (
+                        <button key={method} type="button" onClick={() => setPaymentMethod(method)}
+                          className={`p-3.5 rounded-xl border font-bold ${paymentMethod === method ? 'bg-emerald-950 text-gold-500' : 'bg-gray-50 text-gray-600'}`}>
+                          {method}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -732,110 +674,17 @@ export default function Cart({
                     </div>
                   )}
 
-                  {/* Bank Transfer details */}
-                  {paymentMethod === 'Bank Transfer' && (
-                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-100/60 space-y-3">
-                      <div className="flex gap-2.5 items-start">
-                        <Info className="w-5 h-5 text-amber-700 shrink-0" />
-                        <div>
-                          <h4 className="font-serif font-extrabold text-amber-900 text-[11px] uppercase">Malik Oil Expellers Bank Account</h4>
-                          <p className="text-[10px] text-gray-600 mt-0.5 leading-relaxed">
-                            Please transfer the billing amount to HBL and email the receipt or WhatsApp the screenshot of receipt to 0300-7618236.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-white p-3 rounded-lg border border-amber-200 text-[10px] space-y-1.5 font-mono">
-                        <div><span className="text-gray-400">Bank:</span> Habib Bank Limited (HBL)</div>
-                        <div><span className="text-gray-400">Branch:</span> Samundri Road, Okara Branch</div>
-                        <div><span className="text-gray-400">Title:</span> MALIK OIL EXPELLERS LTD</div>
-                        <div><span className="text-gray-400">Account No:</span> 0300-7618236-01</div>
-                        <div><span className="text-gray-400">IBAN:</span> PK53HABB0300761823601</div>
-                      </div>
+                  {paymentMethod !== 'COD' && (
+                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs">
+                      <strong>{paymentMethod}: manual payment verification</strong>
+                      <dl className="mt-2 space-y-1">
+                        <div><dt className="inline font-semibold">Account title: </dt><dd className="inline">{RECEIVING_ACCOUNT.title}</dd></div>
+                        <div><dt className="inline font-semibold">{paymentMethod === 'Raast' ? 'Raast ID' : 'Receiving number'}: </dt><dd className="inline font-mono">{RECEIVING_ACCOUNT.number}</dd></div>
+                      </dl>
+                      <p className="mt-2">Rs. {total.toLocaleString()} transfer karein. App mein receiving name verify karein aur payment receipt apne invoice number ke saath shop ko dein. Shop confirmation tak order Unpaid rahega. PIN ya OTP share na karein.</p>
                     </div>
                   )}
-
-                  {/* Secure Card Payment Sandbox gateway */}
-                  {paymentMethod === 'Card' && (
-                    <div className="space-y-4">
-                      {/* Interactive Credit Card layout */}
-                      <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 text-white p-5 rounded-2xl border border-gold-500/30 shadow-lg relative overflow-hidden flex flex-col justify-between h-40">
-                        <div className="absolute top-0 right-0 p-8 w-32 h-32 bg-gold-500/10 rounded-full blur-2xl"></div>
-                        
-                        <div className="flex justify-between items-start">
-                          <span className="text-[10px] font-black tracking-widest text-gold-500 font-serif">MALIK SECUREPAY</span>
-                          <CreditCard className="w-5 h-5 text-gold-100" />
-                        </div>
-
-                        <div className="font-mono text-base tracking-widest my-2">
-                          {cardNumber ? cardNumber.replace(/(\d{4})/g, '$1 ').trim() : '•••• •••• •••• ••••'}
-                        </div>
-
-                        <div className="flex justify-between items-end font-mono text-[9px] uppercase tracking-wider text-gray-300">
-                          <div>
-                            <span className="text-[6px] text-gray-400 block">Card Holder</span>
-                            <span>{name || 'YOUR NAME'}</span>
-                          </div>
-                          <div className="flex gap-4">
-                            <div>
-                              <span className="text-[6px] text-gray-400 block">Expiry</span>
-                              <span>{cardExpiry || 'MM/YY'}</span>
-                            </div>
-                            <div>
-                              <span className="text-[6px] text-gray-400 block">CVV</span>
-                              <span>{cardCvv || '•••'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Input fields */}
-                      <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <div>
-                          <label className="block text-[9px] uppercase font-bold text-gray-500 mb-1">Card Number</label>
-                          <input
-                            type="text"
-                            maxLength={16}
-                            placeholder="4111 2222 3333 4444"
-                            value={cardNumber}
-                            onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ''))}
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-gold-500"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[9px] uppercase font-bold text-gray-500 mb-1">Expiry Date</label>
-                            <input
-                              type="text"
-                              maxLength={5}
-                              placeholder="MM/YY"
-                              value={cardExpiry}
-                              onChange={(e) => setCardExpiry(e.target.value)}
-                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-gold-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[9px] uppercase font-bold text-gray-500 mb-1">Security CVV</label>
-                            <input
-                              type="password"
-                              maxLength={3}
-                              placeholder="123"
-                              value={cardCvv}
-                              onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-gold-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* SSL Padlock warning block */}
-                      <div className="flex gap-2 items-center justify-center text-gray-400 text-[10px]">
-                        <Shield className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Secure 256-bit SSL encrypted connection.</span>
-                      </div>
-                    </div>
-                  )}
+                  <SecurityChallenge resetKey={challengeVersion} onToken={setChallenge} />
                 </motion.div>
               )}
 
@@ -970,7 +819,7 @@ export default function Cart({
                 {step === 'payment' ? (
                   <button
                     onClick={handleCheckoutSubmit}
-                    disabled={isProcessingPayment}
+                    disabled={isProcessingPayment || !challenge}
                     className="flex-1 py-3 bg-emerald-950 hover:bg-emerald-900 text-gold-500 hover:text-white font-serif font-extrabold text-xs tracking-widest rounded-lg border border-gold-500/20 shadow flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {isProcessingPayment ? (

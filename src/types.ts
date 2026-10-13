@@ -37,7 +37,7 @@ export interface Order {
   discount?: number;
   discountCode?: string;
   total: number;
-  paymentMethod: 'COD' | 'Card' | 'Bank Transfer';
+  paymentMethod: 'COD' | 'Card' | 'JazzCash' | 'Easypaisa' | 'Bank Transfer' | 'Raast';
   paymentStatus: 'Paid' | 'Unpaid';
   orderStatus: 'Pending' | 'Dispatched' | 'Delivered' | 'Cancelled';
 }

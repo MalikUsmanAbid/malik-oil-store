@@ -1,0 +1,9 @@
+{
+  "name": "malik-oil-orders",
+  "main": "index.ts",
+  "compatibility_date": "2026-10-13",
+  "vars": {
+    "FIREBASE_PROJECT_ID": "malik-oil-expellers",
+    "STORE_ORIGIN": "https://malikoil.vercel.app"
+  }
+}
