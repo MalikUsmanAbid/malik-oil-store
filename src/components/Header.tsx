@@ -73,7 +73,7 @@ export default function Header({
           </a>
           <span className="text-gray-500">|</span>
           <div className="flex items-center gap-3">
-            <a href="https://www.facebook.com/profile.php?id=100086438732038" target="_blank" rel="noreferrer" className="text-gray-300 hover:text-gold-500 transition-colors" aria-label="Facebook">
+            <a href="https://www.facebook.com/share/1QftQSKCk6/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="text-gray-300 hover:text-gold-500 transition-colors" aria-label="Facebook">
               <Facebook className="w-4 h-4" />
             </a>
             <a href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-green-400 transition-colors" aria-label="WhatsApp">
