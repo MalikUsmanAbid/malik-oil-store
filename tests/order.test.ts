@@ -12,7 +12,7 @@ test('forged total rejected', () => assert.throws(() => calculateOrder({ ...inpu
 test('duplicate product rejected', () => { const order = input(); order.items.push(order.items[0]); assert.throws(() => validateOrder(order), /quantity/); });
 test('negative and fractional quantities rejected', () => { for (const quantity of [-1, 0, 1.5, 1001]) assert.throws(() => validateOrder({ ...input(), items: [{ productId: 'p1', quantity }] })); });
 test('card simulation rejected at backend', () => assert.throws(() => validateOrder({ ...input(), paymentMethod: 'Card' }), /Unsupported/));
-test('all requested manual payment methods accepted', () => { for (const paymentMethod of ['COD', 'JazzCash', 'Easypaisa', 'Bank Transfer', 'Raast']) validateOrder({ ...input(), paymentMethod }); });
+test('all requested manual payment methods accepted', () => { for (const paymentMethod of ['COD', 'JazzCash', 'Easypaisa', 'Raast']) validateOrder({ ...input(), paymentMethod }); });
 test('removed or inactive discount rejected', () => assert.throws(() => calculateOrder({ ...input(), discountCode: 'OLD' }, products(), settings), /Discount/));
 test('configured discounts and tax calculated by backend', () => { const order = calculateOrder({ ...input(), discountCode: 'SAVE', total: 1240 }, products(), { ...settings, taxRatePercent: 10 }, { code: 'SAVE', isActive: true, type: 'flat', value: 100 }); assert.equal(order.total, 1240); assert.equal(order.tax, 90); });
 test('minimum order and changed discount code enforced', () => { for (const code of [{ code: 'SAVE', isActive: true, minOrderAmount: 2000 }, { code: 'OTHER', isActive: true }]) assert.throws(() => calculateOrder({ ...input(), discountCode: 'SAVE' }, products(), settings, code), /Discount/); });
@@ -21,3 +21,5 @@ const env = { STORE_ORIGIN: 'https://store.example', FIREBASE_PROJECT_ID: 'test'
 test('unconfigured checkout fails closed', async () => { const response = await worker.fetch(new Request('https://worker.example/orders', { method: 'POST', headers: { Origin: env.STORE_ORIGIN }, body: JSON.stringify({ order: input() }) }), env); assert.equal(response.status, 503); });
 test('cross-origin requests blocked', async () => { const response = await worker.fetch(new Request('https://worker.example/orders', { method: 'POST', headers: { Origin: 'https://other.example' } }), env); assert.equal(response.status, 403); });
 test('oversized requests blocked', async () => { const response = await worker.fetch(new Request('https://worker.example/orders', { method: 'POST', headers: { Origin: env.STORE_ORIGIN }, body: 'x'.repeat(20001) }), env); assert.equal(response.status, 413); });
+
+test('bank transfer rejected until a receiving bank account is configured', () => assert.throws(() => validateOrder({ ...input(), paymentMethod: 'Bank Transfer' }), /Unsupported/));

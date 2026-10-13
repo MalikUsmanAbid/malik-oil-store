@@ -1,3 +1,4 @@
+import { PAYMENT_METHODS } from '../src/data/paymentMethods';
 /** Cloudflare Worker: configure secrets in Cloudflare, never in the browser. */
 interface Env {
   FIREBASE_PROJECT_ID: string;
@@ -47,7 +48,7 @@ export function validateOrder(input: any) {
     if (typeof input[key] !== 'string' || !input[key].trim() || input[key].length > 500) throw new Error(`Invalid ${key}`);
   }
   if (!/^(\+92|0)?[0-9\s-]{9,15}$/.test(input.customerPhone)) throw new Error('Invalid phone number');
-  if (!['COD', 'JazzCash', 'Easypaisa', 'Bank Transfer', 'Raast'].includes(input.paymentMethod)) throw new Error('Unsupported payment method');
+  if (!(PAYMENT_METHODS as readonly string[]).includes(input.paymentMethod)) throw new Error('Unsupported payment method');
   if (!Array.isArray(input.items) || input.items.length < 1 || input.items.length > 20) throw new Error('Invalid cart');
   const ids = new Set();
   for (const item of input.items) {

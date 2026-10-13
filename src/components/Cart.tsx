@@ -3,6 +3,7 @@ import { ShoppingCart, Trash2, Shield, CreditCard, CheckCircle, Truck, Info, Dow
 import { motion, AnimatePresence } from 'motion/react';
 import { Product, Order, OrderItem, DiscountCode } from '../types';
 import SecurityChallenge from './SecurityChallenge';
+import { TRANSFER_METHODS, RECEIVING_ACCOUNT } from '../data/paymentMethods';
 import { StoreSettings } from '../types';
 import { TAX_RATES, INITIAL_DISCOUNT_CODES } from '../data/initialData';
 
@@ -651,7 +652,7 @@ export default function Cart({
                         💵 COD
                       </button>
 
-                      {(['JazzCash', 'Easypaisa', 'Bank Transfer', 'Raast'] as const).map(method => (
+                      {TRANSFER_METHODS.map(method => (
                         <button key={method} type="button" onClick={() => setPaymentMethod(method)}
                           className={`p-3.5 rounded-xl border font-bold ${paymentMethod === method ? 'bg-emerald-950 text-gold-500' : 'bg-gray-50 text-gray-600'}`}>
                           {method}
@@ -676,7 +677,11 @@ export default function Cart({
                   {paymentMethod !== 'COD' && (
                     <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs">
                       <strong>{paymentMethod}: manual payment verification</strong>
-                      <p className="mt-2">Order save hone ke baad shop se verified receiving details lein. Payment confirmation tak order Unpaid rahega. Yahan PIN ya OTP enter na karein.</p>
+                      <dl className="mt-2 space-y-1">
+                        <div><dt className="inline font-semibold">Account title: </dt><dd className="inline">{RECEIVING_ACCOUNT.title}</dd></div>
+                        <div><dt className="inline font-semibold">{paymentMethod === 'Raast' ? 'Raast ID' : 'Receiving number'}: </dt><dd className="inline font-mono">{RECEIVING_ACCOUNT.number}</dd></div>
+                      </dl>
+                      <p className="mt-2">Rs. {total.toLocaleString()} transfer karein. App mein receiving name verify karein aur payment receipt apne invoice number ke saath shop ko dein. Shop confirmation tak order Unpaid rahega. PIN ya OTP share na karein.</p>
                     </div>
                   )}
                   <SecurityChallenge resetKey={challengeVersion} onToken={setChallenge} />
