@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
-import { loginAdminWithEmail, logoutAdmin, subscribeToAuth } from '../services/dbService';
+import { loginAdminWithEmail, logoutAdmin, subscribeToAuth, isStoreAdmin } from '../services/dbService';
 import firebaseConfig from '../../firebase-applet-config.json';
 import {
   AreaChart,
@@ -81,13 +81,14 @@ export default function AdminDashboard({
   const [showCloudSetupModal, setShowCloudSetupModal] = useState(false);
 
   useEffect(() => {
-    const unsub = subscribeToAuth((user) => {
-      setAuthUser(user);
-      if (user) {
-        setIsAuthenticated(true);
-      }
+    let active = true;
+    const unsub = subscribeToAuth(async user => {
+      const allowed = user ? await isStoreAdmin(user.uid) : false;
+      if (!active) return;
+      setAuthUser(allowed ? user : null);
+      setIsAuthenticated(allowed);
     });
-    return () => unsub();
+    return () => { active = false; unsub(); };
   }, []);
 
   const handleVerifyPin = (e: React.FormEvent) => {
@@ -634,7 +635,8 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
     const passToUse = adminPassword;
 
     try {
-      await loginAdminWithEmail(emailToUse, passToUse);
+      const user = await loginAdminWithEmail(emailToUse, passToUse);
+      if (!await isStoreAdmin(user.uid)) { await logoutAdmin(); throw new Error("This account is not authorized as a store admin."); }
       setIsAuthenticated(true);
     } catch (err: any) {
       setAuthError(err?.message || 'Authentication failed. Please check your Firebase admin credentials.');

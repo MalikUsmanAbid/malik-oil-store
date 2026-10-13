@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Storefront from './components/Storefront';
 import Cart from './components/Cart';
-import AdminDashboard from './components/AdminDashboard';
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 import About from './components/About';
 import OrderTracker from './components/OrderTracker';
 import Footer from './components/Footer';
@@ -11,7 +11,6 @@ import Footer from './components/Footer';
 import { Product, Order, Customer, StoreSettings, DiscountCode } from './types';
 import { DEFAULT_STORE_SETTINGS, INITIAL_DISCOUNT_CODES, INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_CUSTOMERS } from './data/initialData';
 import {
-  initializeAndMigrateFirestore,
   subscribeToProducts,
   subscribeToOrders,
   subscribeToCustomers,
@@ -28,6 +27,8 @@ import {
   deleteOrder as dbDeleteOrder,
   saveStoreSettings as dbSaveStoreSettings,
   saveDiscountCode as dbSaveDiscountCode,
+  subscribeToAuth,
+  isStoreAdmin,
   deleteDiscountCode as dbDeleteDiscountCode
 } from './services/dbService';
 import { RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -45,8 +46,8 @@ function loadInitialLocal<T>(key: string, fallback: T): T {
 export default function App() {
   // Central Real-time State initialized immediately from localStorage / Browser Storage
   const [products, setProducts] = useState<Product[]>(() => loadInitialLocal('malik_oil_products', INITIAL_PRODUCTS));
-  const [orders, setOrders] = useState<Order[]>(() => loadInitialLocal('malik_oil_orders', INITIAL_ORDERS));
-  const [customers, setCustomers] = useState<Customer[]>(() => loadInitialLocal('malik_oil_customers', INITIAL_CUSTOMERS));
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => loadInitialLocal('malik_oil_store_settings', DEFAULT_STORE_SETTINGS));
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>(() => loadInitialLocal('malik_oil_discount_codes', INITIAL_DISCOUNT_CODES));
 
@@ -69,30 +70,16 @@ export default function App() {
     async function setupFirestore() {
       try {
         // Step 1: Ensure initial database seed / migration from legacy storage
-        await initializeAndMigrateFirestore();
+        // Production startup must never seed visitor browser data into Firestore.
 
         // Step 2: Establish real-time snapshot listeners
         const unsubProds = subscribeToProducts(
           fetchedProds => {
-            if (fetchedProds && fetchedProds.length > 0) {
+            if (fetchedProds) {
               setProducts(fetchedProds);
             }
           },
-          err => console.warn('Products sync using local browser storage')
-        );
-
-        const unsubOrders = subscribeToOrders(
-          fetchedOrders => {
-            if (fetchedOrders) setOrders(fetchedOrders);
-          },
-          err => console.warn('Orders sync using local browser storage')
-        );
-
-        const unsubCusts = subscribeToCustomers(
-          fetchedCusts => {
-            if (fetchedCusts) setCustomers(fetchedCusts);
-          },
-          err => console.warn('Customers sync using local browser storage')
+          err => setSyncError('Catalogue sync unavailable. Stock may be outdated; retry before ordering.')
         );
 
         const unsubSettings = subscribeToSettings(
@@ -104,14 +91,14 @@ export default function App() {
 
         const unsubDiscounts = subscribeToDiscountCodes(
           fetchedDiscounts => {
-            if (fetchedDiscounts && fetchedDiscounts.length > 0) {
+            if (fetchedDiscounts) {
               setDiscountCodes(fetchedDiscounts);
             }
           },
           err => console.warn('Discounts sync using local browser storage')
         );
 
-        unsubs = [unsubProds, unsubOrders, unsubCusts, unsubSettings, unsubDiscounts];
+        unsubs = [unsubProds, unsubSettings, unsubDiscounts];
       } catch (err) {
         console.warn('Firestore fallback to local browser storage:', err);
       }
@@ -122,6 +109,31 @@ export default function App() {
     return () => {
       unsubs.forEach(unsub => unsub());
     };
+  }, []);
+
+  useEffect(() => {
+    setCartItems(previous => previous.flatMap(item => {
+      const product = products.find(p => p.id === item.product.id);
+      if (!product || product.isActive === false || product.stock <= 0) return [];
+      return [{ product, quantity: Math.min(item.quantity, product.stock) }];
+    }));
+  }, [products]);
+
+  useEffect(() => {
+    let generation = 0;
+    let stop: (() => void)[] = [];
+    // Purge old public customer/order caches; private admin data stays in memory.
+    localStorage.removeItem('malik_oil_orders');
+    localStorage.removeItem('malik_oil_customers');
+    const authStop = subscribeToAuth(async user => {
+      const current = ++generation;
+      stop.forEach(fn => fn()); stop = [];
+      setOrders([]); setCustomers([]);
+      if (user && await isStoreAdmin(user.uid) && current === generation) {
+        stop = [subscribeToOrders(setOrders), subscribeToCustomers(setCustomers)];
+      }
+    });
+    return () => { generation++; authStop(); stop.forEach(fn => fn()); };
   }, []);
 
   // Cart operations (In-Memory per session)
@@ -171,21 +183,17 @@ export default function App() {
   // Checkout Placement Handler -> Firestore Real-Time Write + Instant Local Update
   const handlePlaceOrder = async (newOrder: Order) => {
     try {
-      await dbPlaceOrder(newOrder, products, customers);
+      const savedOrder = await dbPlaceOrder(newOrder);
       // Update the UI only after the cloud write succeeds.
-      setOrders(prev => prev.some(o => o.id === newOrder.id) ? prev : [newOrder, ...prev]);
-      setProducts(prevProducts => prevProducts.map(product => {
-        const orderedItem = newOrder.items.find(item => item.productId === product.id);
-        return orderedItem
-          ? { ...product, stock: Math.max(0, product.stock - orderedItem.quantity) }
-          : product;
-      }));
+      // Private order collections are subscribed only by authorized admins.
       setCartItems([]);
+      return savedOrder;
     } catch (err) {
       console.error('Error saving order to Firestore:', err);
       const firebaseError = err as { code?: string; message?: string };
       const detail = firebaseError?.code || firebaseError?.message || 'Unknown Firebase error';
       alert(`Order cloud database me save nahi ho saka: ${detail}`);
+      throw err;
     }
   };
 
@@ -328,6 +336,7 @@ export default function App() {
       <main className="flex-1">
         {isAdmin ? (
           /* SHOPIFY ADMIN VIEW */
+          <Suspense fallback={<p className="p-6">Loading admin panel…</p>}>
           <AdminDashboard
             products={products}
             orders={orders}
@@ -345,6 +354,7 @@ export default function App() {
             onUpdatePaymentStatus={handleUpdatePaymentStatus}
             onDeleteOrder={handleDeleteOrder}
           />
+          </Suspense>
         ) : (
           /* CUSTOMER STOREFRONT PORTAL */
           <>
@@ -367,7 +377,7 @@ export default function App() {
 
             {activeTab === 'about' && <About />}
 
-            {activeTab === 'track' && <OrderTracker orders={orders} />}
+            {activeTab === 'track' && <OrderTracker />}
           </>
         )}
       </main>
@@ -391,6 +401,7 @@ export default function App() {
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
         discountCodes={discountCodes}
+        storeSettings={storeSettings}
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveFromCart}
         onPlaceOrder={handlePlaceOrder}

@@ -1,46 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Products catalog: readable by all, writable for store management
+    function admin() {
+      return request.auth != null && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    match /admins/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
     match /products/{id} {
       allow read: if true;
-      allow write: if true;
+      allow create, update: if admin() && request.resource.data.price is number && request.resource.data.price >= 0 && request.resource.data.stock is int && request.resource.data.stock >= 0;
+      allow delete: if admin();
     }
-
-    // Categories: readable by all, writable for store management
-    match /categories/{id} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Store Settings: readable by all, writable for admin
-    match /settings/{id} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Discount Codes: readable by all, writable for admin
-    match /discountCodes/{id} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Customer Orders: readable, creatable & updatable by all
+    match /categories/{id} { allow read: if true; allow write: if admin(); }
+    match /settings/{id} { allow read: if true; allow write: if admin(); }
+    match /discountCodes/{id} { allow read: if true; allow write: if admin(); }
     match /orders/{id} {
-      allow read, create, update: if true;
-      allow delete: if request.auth != null;
+      allow read: if admin();
+      // Orders and inventory are created atomically by the trusted Worker.
+      allow create, delete: if false;
+      allow update: if admin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderStatus', 'paymentStatus'])
+        && request.resource.data.orderStatus in ['Pending', 'Dispatched', 'Delivered', 'Cancelled']
+        && request.resource.data.paymentStatus in ['Unpaid', 'Paid'];
     }
-
-    // Customers: readable, creatable & updatable by all
-    match /customers/{id} {
-      allow read, create, update: if true;
-      allow delete: if request.auth != null;
-    }
-
-    // Customer Reviews: readable and creatable by all
-    match /reviews/{id} {
-      allow read, create: if true;
-      allow update, delete: if true;
-    }
+    match /customers/{id} { allow read: if admin(); allow write: if false; }
+    match /reviews/{id} { allow read: if true; allow write: if admin(); }
   }
 }
