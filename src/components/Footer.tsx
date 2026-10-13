@@ -39,7 +39,7 @@ export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }:
 
             {/* Social handles matching image circles */}
             <div className="flex items-center gap-3.5">
-              <a href="https://www.facebook.com/profile.php?id=100086438732038" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-emerald-950 border border-emerald-900 flex items-center justify-center text-gray-300 hover:bg-gold-500 hover:text-white transition-all">
+              <a href="https://www.facebook.com/share/1QftQSKCk6/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-emerald-950 border border-emerald-900 flex items-center justify-center text-gray-300 hover:bg-gold-500 hover:text-white transition-all">
                 <Facebook className="w-4 h-4" />
               </a>
               <a href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-emerald-950 border border-emerald-900 flex items-center justify-center text-gray-300 hover:bg-green-500 hover:text-white transition-all">
