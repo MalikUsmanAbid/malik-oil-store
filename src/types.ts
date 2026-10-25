@@ -21,6 +21,7 @@ export interface OrderItem {
 }
 
 export interface Order {
+  ownerUid?: string;
   id: string;
   invoiceNo: string;
   customerName: string;

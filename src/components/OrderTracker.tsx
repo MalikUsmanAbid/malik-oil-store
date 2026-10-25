@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
+import { trackOrder } from '../services/dbService';
 import { Order } from '../types';
 import { Search, Compass, PackageCheck, Truck, ShieldCheck, AlertCircle, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-interface OrderTrackerProps {
-  orders: Order[];
-}
-
-export default function OrderTracker({ orders }: OrderTrackerProps) {
+export default function OrderTracker() {
   const [invoiceQuery, setInvoiceQuery] = useState('');
   const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleTrackSubmit = (e: React.FormEvent) => {
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState('');
+  const handleTrackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanInvoice = invoiceQuery.trim().toUpperCase();
-    const match = orders.find((o) => o.invoiceNo === cleanInvoice);
-    setTrackedOrder(match || null);
-    setHasSearched(true);
+    setSearching(true); setError(''); setTrackedOrder(null);
+    try { setTrackedOrder(await trackOrder(cleanInvoice)); setHasSearched(true); }
+    catch { setError('Tracking is unavailable. Please try again or contact the store.'); setHasSearched(false); }
+    finally { setSearching(false); }
   };
 
   const getStepStatusClass = (orderStatus: Order['orderStatus'], target: 'Pending' | 'Dispatched' | 'Delivered') => {
@@ -40,7 +40,7 @@ export default function OrderTracker({ orders }: OrderTrackerProps) {
         <Compass className="w-10 h-10 text-gold-500 mx-auto" />
         <h2 className="font-serif font-black text-2xl text-emerald-950">LIVE CARGO TRACKING</h2>
         <p className="text-xs text-gray-500 max-w-sm mx-auto">
-          Enter your 8-digit Invoice No (e.g. MEO-1024 or MEO-1025) to trace dispatch status.
+          Enter your invoice number using the same browser where you placed your order. For older orders or another device, contact the store.
         </p>
       </div>
 
@@ -53,20 +53,22 @@ export default function OrderTracker({ orders }: OrderTrackerProps) {
           <input
             type="text"
             required
-            placeholder="e.g. MEO-1024"
+            placeholder="MEO-..."
             value={invoiceQuery}
             onChange={(e) => setInvoiceQuery(e.target.value)}
             className="w-full text-sm bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-gold-500 font-mono tracking-wider"
           />
         </div>
         <button
+          disabled={searching}
           type="submit"
           className="px-6 bg-emerald-950 hover:bg-emerald-900 text-gold-500 hover:text-white font-serif font-extrabold text-xs tracking-widest rounded-xl border border-gold-500/20 shadow-md transition-colors cursor-pointer"
         >
-          TRACK
+          {searching ? 'SEARCHING...' : 'TRACK'}
         </button>
       </form>
 
+      {error && <p role="alert" className="text-rose-700">{error}</p>}
       {/* Track Result */}
       <AnimatePresence mode="wait">
         {hasSearched && trackedOrder ? (

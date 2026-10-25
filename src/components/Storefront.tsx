@@ -11,80 +11,7 @@ interface StorefrontProps {
   cartCount: number;
 }
 
-const INITIAL_REVIEWS: Review[] = [
-  {
-    id: 'rev-1',
-    productId: 'p1', // Canola Oil
-    author: 'Haji Muhammad Yousaf',
-    city: 'Samundri',
-    rating: 5,
-    comment: 'Khushbu bohot achi hai aur khana bilkul halka banta hai. Cholestrol ke liye behtareen hai!',
-    date: '2026-07-15'
-  },
-  {
-    id: 'rev-2',
-    productId: 'p1',
-    author: 'Ayesha Bibi',
-    city: 'Faisalabad',
-    rating: 5,
-    comment: 'Pehle market se brand ka canola oil lete thay, ab direct Malik Oil se mangwate hain. Price bhi sasti hai aur khalis bhi hai.',
-    date: '2026-07-10'
-  },
-  {
-    id: 'rev-3',
-    productId: 'p2', // Mustard Oil (Sarson)
-    author: 'Chaudhary Bashir',
-    city: 'Okara',
-    rating: 5,
-    comment: 'Bilkul asli kachi ghani sarson ka tel hai. Achar ke liye behtareen aur sar me lagane ke liye lajawab.',
-    date: '2026-07-19'
-  },
-  {
-    id: 'rev-4',
-    productId: 'p2',
-    author: 'Sajid Mehmood',
-    city: 'Sahiwal',
-    rating: 4,
-    comment: 'Tel bilkul khalis hai aur khushbu bhi tez hai. Delivery thodi 1 din late hui par tel ki quality kamaal hai.',
-    date: '2026-07-12'
-  },
-  {
-    id: 'rev-5',
-    productId: 'p3', // Sesame Oil
-    author: 'Dr. Amjad',
-    city: 'Sahiwal',
-    rating: 5,
-    comment: 'Bohat hi pure khushbu hai. Joints ke dukhne par maalish ke liye use kiya, bohat hi jald faida hua.',
-    date: '2026-07-18'
-  },
-  {
-    id: 'rev-6',
-    productId: 'p4', // Taramira
-    author: 'Haji Aslam',
-    city: 'Gojra',
-    rating: 5,
-    comment: 'Sar ki khushki aur balon ke liye behtareen taramira oil hai. Thoda kora hota hai par bilkul natural hai.',
-    date: '2026-07-14'
-  },
-  {
-    id: 'rev-7',
-    productId: 'p5', // Khall
-    author: 'Malik Tariq',
-    city: 'Gojra',
-    rating: 5,
-    comment: 'Bhains ka doodh barh gaya hai aur khall bilkul saaf sutri hai baghair kisi milaawat ke. Highly recommended.',
-    date: '2026-07-17'
-  },
-  {
-    id: 'rev-8',
-    productId: 'p6', // Wanda
-    author: 'Sardar Ali',
-    city: 'Depalpur',
-    rating: 5,
-    comment: 'Wanda se janwar tandurust ho gaye hain aur doodh ki fat bhi barh gayi hai. Delivery direct farm par mil gayi.',
-    date: '2026-07-11'
-  }
-];
+const INITIAL_REVIEWS: Review[] = [];
 
 export default function Storefront({ products, onAddToCart, cartCount }: StorefrontProps) {
   const activeProducts = products.filter(p => p.isActive !== false);
@@ -139,9 +66,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
 
   useEffect(() => {
     const unsubscribe = subscribeToReviews(fetchedReviews => {
-      if (fetchedReviews.length > 0) {
-        setReviews(fetchedReviews);
-      }
+      setReviews(fetchedReviews);
     });
     return () => unsubscribe();
   }, []);
@@ -165,7 +90,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
     const prodIdToUse = targetProdId || selectedProduct?.id || standaloneReviewProdId;
 
     const newRev: Review = {
-      id: 'rev-' + Date.now(),
+      id: 'rev-' + crypto.randomUUID(),
       productId: prodIdToUse,
       author: newReviewAuthor,
       city: newReviewCity,
@@ -178,6 +103,8 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
       await saveReview(newRev);
     } catch (err) {
       console.error('Failed to save review:', err);
+      alert('Review save nahi ho saka. Dobara koshish karein.');
+      return;
     }
 
     // Reset Form
@@ -1217,7 +1144,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                   ))}
                 </div>
                 <span className="text-xs text-gray-300 font-medium mt-0.5 block">
-                  Based on <strong>{reviews.length}</strong> verified reviews
+                  Based on <strong>{reviews.length}</strong> customer reviews
                 </span>
               </div>
               <button

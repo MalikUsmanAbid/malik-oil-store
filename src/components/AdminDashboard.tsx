@@ -83,9 +83,7 @@ export default function AdminDashboard({
   useEffect(() => {
     const unsub = subscribeToAuth((user) => {
       setAuthUser(user);
-      if (user) {
-        setIsAuthenticated(true);
-      }
+      setIsAuthenticated(!!user);
     });
     return () => unsub();
   }, []);
@@ -255,6 +253,7 @@ export default function AdminDashboard({
 
   // Local Discount Codes Management State
   const [localDiscounts, setLocalDiscounts] = useState<DiscountCode[]>(discountCodes);
+  useEffect(() => setLocalDiscounts(discountCodes), [discountCodes]);
   const [newCodeName, setNewCodeName] = useState('');
   const [newCodeType, setNewCodeType] = useState<'percentage' | 'flat'>('percentage');
   const [newCodeValue, setNewCodeValue] = useState<number>(10);
@@ -326,9 +325,7 @@ const [freeShippingThreshold, setFreeShippingThreshold] = useState(
   storeSettings?.freeShippingThreshold ?? 3500
 );
 
-const [taxRatePercent, setTaxRatePercent] = useState(
-  storeSettings?.taxRatePercent ?? 18
-);
+const taxRatePercent = 0;
 
 const [customNoticeText, setCustomNoticeText] = useState(
   storeSettings?.customNoticeText ||
@@ -1955,7 +1952,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                             <span>Rs. {selectedInvoiceToPrint.subtotal.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between text-gray-600">
-                            <span>GST Tax ({taxRatePercent}%):</span>
+                            <span>Recorded Tax:</span>
                             <span>Rs. {selectedInvoiceToPrint.tax.toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between text-gray-600">
@@ -3211,8 +3208,8 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                     <Receipt className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-serif font-black text-base text-emerald-950">Shipping Charges & GST Tax</h3>
-                    <p className="text-[11px] text-gray-400">ڈلیوری چارجز اور جی ایس ٹی ٹیکس کی شرح</p>
+                    <h3 className="font-serif font-black text-base text-emerald-950">Shipping Charges</h3>
+                    <p className="text-[11px] text-gray-400">ڈلیوری چارجز</p>
                   </div>
                 </div>
 
@@ -3237,15 +3234,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Default GST Sales Tax Rate (%)</label>
-                  <input
-                    type="number"
-                    value={taxRatePercent}
-                    onChange={(e) => setTaxRatePercent(Number(e.target.value))}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-emerald-950 focus:bg-white focus:ring-2 focus:ring-emerald-950 outline-none"
-                  />
-                </div>
+                <p className="text-xs text-gray-500">Sales tax is disabled for new orders.</p>
 
                 <div className="pt-2">
                   <button
