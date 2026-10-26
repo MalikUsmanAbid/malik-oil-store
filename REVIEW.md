@@ -7,6 +7,7 @@
 - Real save confirmation; retained cart and safe network retry; simulated card/bank instructions removed.
 - Server-only payment/status changes, cancellation accounting, exactly-once stock return and archive/replay protection.
 - Cross-device invoice-and-phone tracking returning a minimal summary.
+- Server-validated review creation, bounded fields and review submission limits.
 - Persistent per-user/source rate limits and configurable required Firebase App Check.
 - Awaited admin saves and error feedback instead of optimistic success; invoice HTML escaping.
 - WebP conversion: 6,923,218 source-image bytes to 595,522 bytes (91.4% reduction); small favicon, lazy images/screens/PDF/admin tools and delayed Firebase bundle.
@@ -14,7 +15,9 @@
 
 ## Validation
 
-The first full emulator run passed all 11 security/integration tests. Unit and Chrome browser suites passed. Two extra cases now cover required App Check and paid-order cancellation/discount minimums; see the delivery note for their completed results and the final build result.
+On 2026-10-26: TypeScript passed; all 14 security/integration tests, 5 unit tests and 3 Chrome browser tests passed. The production build passed. The fresh production dependency audit reported zero vulnerabilities. Expected permission-denied emulator logs are negative access-control assertions.
+
+Initial JavaScript is about 447 KB (133 KB gzip), compared with 1.18 MB before the final loading changes. Photos are 91.4% smaller. These are payload measurements, not a claim of measured production page-load time.
 
 ## Deployment dependencies
 

@@ -27,7 +27,7 @@ Deploy server/client/rules together. Do not publish the new client with missing 
 2. Set FIREBASE_SERVICE_ACCOUNT_JSON in Vercel's server environment to a service account for malik-oil-expellers with appropriate Firestore and Firebase Auth access. Never commit credentials or use a VITE_ prefix for secrets. Set FIREBASE_DATABASE_ID=(default).
 3. Grant the intended existing staff account the admin claim using scripts/set-admin.mjs in a trusted shell. Sign out/in afterward. Ordinary/anonymous users are never store admins.
 4. Check products and settings/main documents. Prices and stock must be valid; delivery settings require standardShippingRate and freeShippingThreshold. All new orders have zero sales tax even if old settings contain a nonzero tax rate.
-5. For App Check, register the production/preview domains with Firebase App Check and reCAPTCHA v3. Set VITE_FIREBASE_APP_CHECK_SITE_KEY (public site key) and FIREBASE_APP_CHECK_REQUIRED=true (server) together. An attestation is then required on checkout, tracking and order-management APIs. Do not turn on enforcement without configuring the browser provider.
+5. For App Check, register the production/preview domains with Firebase App Check and reCAPTCHA v3. Set VITE_FIREBASE_APP_CHECK_SITE_KEY (public site key) and FIREBASE_APP_CHECK_REQUIRED=true (server) together. An attestation is then required on checkout, tracking, review and order-management APIs. Do not turn on enforcement without configuring the browser provider.
 6. Deploy a Vercel preview; verify catalog, staff access and controlled COD checkout. Deploy firestore.rules to the correct Firebase database and promote the matching Vercel release in one maintenance window. Verify the exact production commit and domain afterward.
 
 ## Behavior

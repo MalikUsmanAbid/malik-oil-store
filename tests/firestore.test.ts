@@ -42,7 +42,7 @@ test('only custom-claim admins manage orders; prices on existing orders are immu
   await assertFails(updateDoc(doc(db, 'orders/o1'), { paymentStatus: 'Paid' }));
   await assertFails(updateDoc(doc(db, 'orders/o1'), { total: 1 }));
 });
-test('reviews require an authenticated author and bounded rating', async () => {
+test('reviews cannot bypass the validated server API', async () => {
   const review = { id: 'r1', productId: 'p1', author: 'Buyer', city: 'Samundri', comment: 'Good', date: '2026-10-15', rating: 5, ownerUid: 'buyer' };
   const db = env.authenticatedContext('buyer').firestore();
   await assertFails(setDoc(doc(env.unauthenticatedContext().firestore(), 'reviews/r1'), review));
