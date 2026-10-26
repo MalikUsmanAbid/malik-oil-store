@@ -1,12 +1,12 @@
 {
   "score": 4,
-  "summary": "The reviewed source rules enforce staff claims, owner-restricted order reads and server-only order/review creation. Emulator access-control and API tests pass. Production verification is still pending, so this is not a certification of live configuration.",
+  "summary": "Staff claims, private order/customer reads and server-only order/review creation were released on 2026-10-26. Emulator security tests and deployed checkout tests pass. This is a scoped application review, not a guarantee against every security issue.",
   "findings": [
     {
-      "check": "Deployment verification",
+      "check": "App Check enforcement",
       "severity": "minor",
-      "issue": "Matching source rules, server credentials, authentication providers and App Check enforcement have not yet been verified in production because account authorization is pending.",
-      "recommendation": "Complete Firebase sign-in and Vercel team authorization; verify preview checkout, then release matching application and rules together and verify the production commit."
+      "issue": "Authenticated APIs and persistent UID/source request limits are active, but App Check remains optional because its public site key and domains have not been registered.",
+      "recommendation": "Register the production web app with App Check, configure the public site key and allowed domains, validate genuine browser requests, then enable required token verification."
     }
   ]
 }
