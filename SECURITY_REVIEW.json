@@ -1,0 +1,12 @@
+{
+  "score": 4,
+  "summary": "The reviewed source rules enforce staff claims, owner-restricted order reads and server-only order/review creation. Emulator access-control and API tests pass. Production verification is still pending, so this is not a certification of live configuration.",
+  "findings": [
+    {
+      "check": "Deployment verification",
+      "severity": "minor",
+      "issue": "Matching source rules, server credentials, authentication providers and App Check enforcement have not yet been verified in production because account authorization is pending.",
+      "recommendation": "Complete Firebase sign-in and Vercel team authorization; verify preview checkout, then release matching application and rules together and verify the production commit."
+    }
+  ]
+}

@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Storefront from './components/Storefront';
-import Cart from './components/Cart';
-import AdminDashboard from './components/AdminDashboard';
-import About from './components/About';
-import OrderTracker from './components/OrderTracker';
+const Cart = lazy(() => import('./components/Cart'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const OrderHelp = lazy(() => import('./components/OrderHelp'));
+const About = lazy(() => import('./components/About'));
+const OrderTracker = lazy(() => import('./components/OrderTracker'));
 import Footer from './components/Footer';
 
+import type { CheckoutRequest } from './utils/checkout';
 import { Product, Order, Customer, StoreSettings, DiscountCode } from './types';
-import { DEFAULT_STORE_SETTINGS, INITIAL_DISCOUNT_CODES, INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_CUSTOMERS } from './data/initialData';
+import { DEFAULT_STORE_SETTINGS, INITIAL_PRODUCTS } from './data/initialData';
 import {
-  initializeAndMigrateFirestore,
+  subscribeToAuth,
   subscribeToProducts,
   subscribeToOrders,
   subscribeToCustomers,
@@ -45,87 +47,58 @@ function loadInitialLocal<T>(key: string, fallback: T): T {
 export default function App() {
   // Central Real-time State initialized immediately from localStorage / Browser Storage
   const [products, setProducts] = useState<Product[]>(() => loadInitialLocal('malik_oil_products', INITIAL_PRODUCTS));
-  const [orders, setOrders] = useState<Order[]>(() => loadInitialLocal('malik_oil_orders', INITIAL_ORDERS));
-  const [customers, setCustomers] = useState<Customer[]>(() => loadInitialLocal('malik_oil_customers', INITIAL_CUSTOMERS));
+  const [orders, setOrders] = useState<Order[]>(() => []);
+  const [customers, setCustomers] = useState<Customer[]>(() => []);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => loadInitialLocal('malik_oil_store_settings', DEFAULT_STORE_SETTINGS));
-  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>(() => loadInitialLocal('malik_oil_discount_codes', INITIAL_DISCOUNT_CODES));
+  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>(() => []);
 
   // Local Shopping Cart State for current visitor session
-  const [cartItems, setCartItems] = useState<{ product: Product; quantity: number }[]>([]);
+  const [cartItems, setCartItems] = useState<{ product: Product; quantity: number }[]>(() => { const saved = loadInitialLocal<unknown>('malik_oil_cart', []); return Array.isArray(saved) ? saved.filter(line => line?.product?.id && Number.isInteger(line.quantity) && line.quantity > 0) : []; });
 
   // Navigation & UI state
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('home'); // 'home' | 'about' | 'track'
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartHasOpened, setCartHasOpened] = useState(false);
+  useEffect(() => { if (isCartOpen) setCartHasOpened(true); }, [isCartOpen]);
 
   // Sync / Connection state
   const [isLoading, setIsLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
 
-  // Initialize and Synchronize from Firestore in background
   useEffect(() => {
-    let unsubs: (() => void)[] = [];
-
-    async function setupFirestore() {
-      try {
-        // Step 1: Ensure initial database seed / migration from legacy storage
-        await initializeAndMigrateFirestore();
-
-        // Step 2: Establish real-time snapshot listeners
-        const unsubProds = subscribeToProducts(
-          fetchedProds => {
-            if (fetchedProds && fetchedProds.length > 0) {
-              setProducts(fetchedProds);
-            }
-          },
-          err => console.warn('Products sync using local browser storage')
-        );
-
-        const unsubOrders = subscribeToOrders(
-          fetchedOrders => {
-            if (fetchedOrders) setOrders(fetchedOrders);
-          },
-          err => console.warn('Orders sync using local browser storage')
-        );
-
-        const unsubCusts = subscribeToCustomers(
-          fetchedCusts => {
-            if (fetchedCusts) setCustomers(fetchedCusts);
-          },
-          err => console.warn('Customers sync using local browser storage')
-        );
-
-        const unsubSettings = subscribeToSettings(
-          fetchedSettings => {
-            if (fetchedSettings) setStoreSettings(fetchedSettings);
-          },
-          err => console.warn('Settings sync using local browser storage')
-        );
-
-        const unsubDiscounts = subscribeToDiscountCodes(
-          fetchedDiscounts => {
-            if (fetchedDiscounts && fetchedDiscounts.length > 0) {
-              setDiscountCodes(fetchedDiscounts);
-            }
-          },
-          err => console.warn('Discounts sync using local browser storage')
-        );
-
-        unsubs = [unsubProds, unsubOrders, unsubCusts, unsubSettings, unsubDiscounts];
-      } catch (err) {
-        console.warn('Firestore fallback to local browser storage:', err);
-      }
-    }
-
-    setupFirestore();
-
-    return () => {
-      unsubs.forEach(unsub => unsub());
-    };
+    try { for (const key of ['malik_oil_orders', 'malik_oil_customers']) localStorage.removeItem(key); } catch { /* Storage may be disabled. */ }
+    const failed = () => setSyncError('Store data could not refresh. Please check your connection before ordering.');
+    const unsubs = [
+      subscribeToProducts(data => { setProducts(data); setSyncError(null); }, failed),
+      subscribeToSettings(setStoreSettings, failed),
+      subscribeToDiscountCodes(setDiscountCodes, failed)
+    ];
+    let privateUnsubs: (() => void)[] = [];
+    const unsubAuth = subscribeToAuth(user => {
+      privateUnsubs.forEach(unsub => unsub());
+      privateUnsubs = [];
+      setOrders([]); setCustomers([]);
+      if (user) privateUnsubs = [subscribeToOrders(setOrders, failed), subscribeToCustomers(setCustomers, failed)];
+    });
+    return () => { unsubs.forEach(unsub => unsub()); privateUnsubs.forEach(unsub => unsub()); unsubAuth(); };
   }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem('malik_oil_cart', JSON.stringify(cartItems)); } catch { /* Private browsing/storage limit */ }
+  }, [cartItems]);
+
+  useEffect(() => {
+    setCartItems(previous => previous.flatMap(line => {
+      const product = products.find(p => p.id === line.product.id && p.isActive !== false);
+      if (!product || product.stock < 1) return [];
+      return [{ product, quantity: Math.min(line.quantity, product.stock) }];
+    }));
+  }, [products]);
 
   // Cart operations (In-Memory per session)
   const handleAddToCart = (product: Product, quantity: number) => {
+    if (!Number.isInteger(quantity) || quantity < 1 || product.isActive === false) return;
     const existingIndex = cartItems.findIndex(item => item.product.id === product.id);
     let updatedCart = [...cartItems];
 
@@ -150,6 +123,7 @@ export default function App() {
   };
 
   const handleUpdateCartQuantity = (productId: string, newQuantity: number) => {
+    if (!Number.isFinite(newQuantity)) return;
     const updatedCart = cartItems.flatMap(item => {
       if (item.product.id === productId) {
         // Keep cart state valid even if a quantity update comes from a stale UI
@@ -168,34 +142,18 @@ export default function App() {
     setCartItems(updatedCart);
   };
 
-  // Checkout Placement Handler -> Firestore Real-Time Write + Instant Local Update
-  const handlePlaceOrder = async (newOrder: Order) => {
-    try {
-      await dbPlaceOrder(newOrder, products, customers);
-      // Update the UI only after the cloud write succeeds.
-      setOrders(prev => prev.some(o => o.id === newOrder.id) ? prev : [newOrder, ...prev]);
-      setProducts(prevProducts => prevProducts.map(product => {
-        const orderedItem = newOrder.items.find(item => item.productId === product.id);
-        return orderedItem
-          ? { ...product, stock: Math.max(0, product.stock - orderedItem.quantity) }
-          : product;
-      }));
-      setCartItems([]);
-    } catch (err) {
-      console.error('Error saving order to Firestore:', err);
-      const firebaseError = err as { code?: string; message?: string };
-      const detail = firebaseError?.code || firebaseError?.message || 'Unknown Firebase error';
-      alert(`Order cloud database me save nahi ho saka: ${detail}`);
-    }
+  const handlePlaceOrder = async (request: CheckoutRequest): Promise<Order> => {
+    const saved = await dbPlaceOrder(request);
+    setCartItems([]);
+    return saved;
   };
-
   // Admin Panel callbacks -> Real-time Firestore Mutations
   const handleAddProduct = async (newProduct: Product) => {
     try {
       await dbAddProduct(newProduct);
     } catch (err) {
       console.error('Error adding product:', err);
-      alert('Failed to add product to Firestore.');
+      throw err;
     }
   };
 
@@ -204,7 +162,7 @@ export default function App() {
       await dbUpdateProduct(updatedProduct);
     } catch (err) {
       console.error('Error updating product:', err);
-      alert('Failed to update product in Firestore.');
+      throw err;
     }
   };
 
@@ -213,7 +171,7 @@ export default function App() {
       await dbDeleteProduct(productId);
     } catch (err) {
       console.error('Error deleting product:', err);
-      alert('Failed to delete product from Firestore.');
+      throw err;
     }
   };
 
@@ -222,6 +180,7 @@ export default function App() {
       await dbUpdateProductStock(productId, newStock);
     } catch (err) {
       console.error('Error updating stock:', err);
+      throw err;
     }
   };
 
@@ -230,6 +189,7 @@ export default function App() {
       await dbUpdateProductPrice(productId, newPrice);
     } catch (err) {
       console.error('Error updating price:', err);
+      throw err;
     }
   };
 
@@ -238,6 +198,7 @@ export default function App() {
       await dbUpdateOrderStatus(orderId, status);
     } catch (err) {
       console.error('Error updating order status:', err);
+      throw err;
     }
   };
 
@@ -246,6 +207,7 @@ export default function App() {
       await dbUpdatePaymentStatus(orderId, status);
     } catch (err) {
       console.error('Error updating payment status:', err);
+      throw err;
     }
   };
 
@@ -255,7 +217,7 @@ export default function App() {
       setOrders(prev => prev.filter(o => o.id !== orderId));
     } catch (err) {
       console.error('Error deleting order:', err);
-      alert('Order delete karne me masla aaya.');
+      throw err;
     }
   };
 
@@ -265,7 +227,7 @@ export default function App() {
       setStoreSettings(newSettings);
     } catch (err) {
       console.error('Error saving store settings:', err);
-      alert('Failed to save settings to Firestore.');
+      throw err;
     }
   };
 
@@ -274,9 +236,11 @@ export default function App() {
       for (const dc of updatedCodes) {
         await dbSaveDiscountCode(dc);
       }
+      for (const removed of discountCodes.filter(old => !updatedCodes.some(code => code.id === old.id))) await dbDeleteDiscountCode(removed.id);
       setDiscountCodes(updatedCodes);
     } catch (err) {
       console.error('Error saving discount codes:', err);
+      throw err;
     }
   };
 
@@ -328,7 +292,7 @@ export default function App() {
       <main className="flex-1">
         {isAdmin ? (
           /* SHOPIFY ADMIN VIEW */
-          <AdminDashboard
+          <Suspense fallback={<p className="p-6 text-center">Loading store admin...</p>}><AdminDashboard
             products={products}
             orders={orders}
             customers={customers}
@@ -344,7 +308,7 @@ export default function App() {
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onUpdatePaymentStatus={handleUpdatePaymentStatus}
             onDeleteOrder={handleDeleteOrder}
-          />
+          /></Suspense>
         ) : (
           /* CUSTOMER STOREFRONT PORTAL */
           <>
@@ -359,15 +323,17 @@ export default function App() {
                 />
                 <Storefront
                   products={products}
+                  storeSettings={storeSettings}
                   onAddToCart={handleAddToCart}
                   cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                 />
               </>
             )}
 
-            {activeTab === 'about' && <About />}
+            {activeTab === 'about' && <Suspense fallback={<p className="p-6">Loading...</p>}><About storeSettings={storeSettings} /></Suspense>}
 
-            {activeTab === 'track' && <OrderTracker orders={orders} />}
+            {activeTab === 'policies' && <Suspense fallback={<p className="p-6">Loading...</p>}><OrderHelp settings={storeSettings} /></Suspense>}
+            {activeTab === 'track' && <Suspense fallback={<p className="p-6">Loading tracking...</p>}><OrderTracker phone={storeSettings.phone} /></Suspense>}
           </>
         )}
       </main>
@@ -386,15 +352,16 @@ export default function App() {
       />
 
       {/* Shopping Cart Drawer */}
-      <Cart
+      {(isCartOpen || cartHasOpened) && <Suspense fallback={<p role="status" className="fixed bottom-4 right-4 bg-white p-4 shadow">Opening cart...</p>}><Cart
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
         discountCodes={discountCodes}
+        storeSettings={storeSettings}
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveFromCart}
         onPlaceOrder={handlePlaceOrder}
-      />
+      /></Suspense>}
     </div>
   );
 }

@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
-import { Order } from '../types';
+import { trackOrder } from '../services/dbService';
+import { Order, TrackedOrder } from '../types';
 import { Search, Compass, PackageCheck, Truck, ShieldCheck, AlertCircle, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-interface OrderTrackerProps {
-  orders: Order[];
-}
-
-export default function OrderTracker({ orders }: OrderTrackerProps) {
+export default function OrderTracker({ phone }: { phone: string }) {
   const [invoiceQuery, setInvoiceQuery] = useState('');
-  const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
+  const [phoneQuery, setPhoneQuery] = useState('');
+  const [trackedOrder, setTrackedOrder] = useState<TrackedOrder | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleTrackSubmit = (e: React.FormEvent) => {
+  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState('');
+  const handleTrackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanInvoice = invoiceQuery.trim().toUpperCase();
-    const match = orders.find((o) => o.invoiceNo === cleanInvoice);
-    setTrackedOrder(match || null);
-    setHasSearched(true);
+    setSearching(true); setError(''); setTrackedOrder(null);
+    try { setTrackedOrder(await trackOrder(cleanInvoice, phoneQuery)); setHasSearched(true); }
+    catch { setError('Tracking is unavailable. Please try again or contact the store.'); setHasSearched(false); }
+    finally { setSearching(false); }
   };
 
   const getStepStatusClass = (orderStatus: Order['orderStatus'], target: 'Pending' | 'Dispatched' | 'Delivered') => {
@@ -40,12 +41,12 @@ export default function OrderTracker({ orders }: OrderTrackerProps) {
         <Compass className="w-10 h-10 text-gold-500 mx-auto" />
         <h2 className="font-serif font-black text-2xl text-emerald-950">LIVE CARGO TRACKING</h2>
         <p className="text-xs text-gray-500 max-w-sm mx-auto">
-          Enter your 8-digit Invoice No (e.g. MEO-1024 or MEO-1025) to trace dispatch status.
+          Enter the invoice number and delivery mobile number from your order. You can track from any device.
         </p>
       </div>
 
       {/* Tracker search bar */}
-      <form onSubmit={handleTrackSubmit} className="flex gap-2">
+      <form onSubmit={handleTrackSubmit} className="flex flex-wrap gap-2">
         <div className="relative flex-1">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
             <Search className="h-4 w-4 text-gray-400" />
@@ -53,20 +54,23 @@ export default function OrderTracker({ orders }: OrderTrackerProps) {
           <input
             type="text"
             required
-            placeholder="e.g. MEO-1024"
+            placeholder="MEO-..."
             value={invoiceQuery}
             onChange={(e) => setInvoiceQuery(e.target.value)}
             className="w-full text-sm bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-gold-500 font-mono tracking-wider"
           />
         </div>
+        <input aria-label="Delivery mobile number" type="tel" required maxLength={25} value={phoneQuery} onChange={e => setPhoneQuery(e.target.value)} placeholder="Delivery phone, e.g. 03001234567" className="w-full rounded-xl border border-gray-200 p-3" />
         <button
+          disabled={searching}
           type="submit"
           className="px-6 bg-emerald-950 hover:bg-emerald-900 text-gold-500 hover:text-white font-serif font-extrabold text-xs tracking-widest rounded-xl border border-gold-500/20 shadow-md transition-colors cursor-pointer"
         >
-          TRACK
+          {searching ? 'SEARCHING...' : 'TRACK'}
         </button>
       </form>
 
+      {error && <p role="alert" className="text-rose-700">{error}</p>}
       {/* Track Result */}
       <AnimatePresence mode="wait">
         {hasSearched && trackedOrder ? (
@@ -147,7 +151,7 @@ export default function OrderTracker({ orders }: OrderTrackerProps) {
               <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-800 flex gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold block">Order Cancelled:</span> This parcel has been voided/cancelled. Please contact support at 0300-7618236.
+                  <span className="font-bold block">Order Cancelled:</span> This parcel has been voided/cancelled. Please contact support at {phone}.
                 </div>
               </div>
             )}

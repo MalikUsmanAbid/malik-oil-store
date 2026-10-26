@@ -21,6 +21,10 @@ export interface OrderItem {
 }
 
 export interface Order {
+  ownerUid?: string;
+  stockReturned?: boolean;
+  accountingApplied?: boolean;
+  archived?: boolean;
   id: string;
   invoiceNo: string;
   customerName: string;
@@ -99,3 +103,5 @@ export interface StoreSettings {
   customNoticeText?: string;
   showCustomNotice?: boolean;
 }
+
+export type TrackedOrder = Pick<Order, 'invoiceNo' | 'orderDate' | 'orderStatus' | 'paymentStatus' | 'items' | 'total'>;

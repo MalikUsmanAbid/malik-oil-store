@@ -1,5 +1,5 @@
 import React from 'react';
-import brandLogo from '../assets/images/malik_real_logo_1784634645165.jpg';
+import brandLogo from '../assets/images/malik_real_logo_1784634645165.webp';
 
 interface BrandLogoProps {
   className?: string;
@@ -9,6 +9,7 @@ interface BrandLogoProps {
 
 export function BrandLogoEmblem({ className = '', size = 48, logoUrl }: BrandLogoProps) {
   const resolveLogo = (url?: string) => {
+    if (url && /^https?:\/\//.test(url) && !url.includes('/src/assets/')) return url;
     if (!url || url === '/images/logo.jpg' || url.includes('logo') || url.includes('/src/assets/')) return brandLogo;
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
     return brandLogo;
@@ -49,6 +50,7 @@ export function FullBrandLogo({
   estYear?: string;
 }) {
   const resolveLogo = (url?: string) => {
+    if (url && /^https?:\/\//.test(url) && !url.includes('/src/assets/')) return url;
     if (!url || url === '/images/logo.jpg' || url.includes('logo') || url.includes('/src/assets/')) return brandLogo;
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
     return brandLogo;

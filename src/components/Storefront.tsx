@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Product, Review } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { DEFAULT_STORE_SETTINGS } from '../data/initialData';
+import { Product, Review, StoreSettings } from '../types';
 import { getProductImage } from '../utils/imageMapper';
 import { subscribeToReviews, saveReview } from '../services/dbService';
 import { Search, ShoppingCart, Truck, ShieldCheck, Heart, Headphones, Sparkles, AlertTriangle, Eye, Check, RefreshCw, Star, MessageSquare, Calculator, Award, HelpCircle, Activity, ChevronDown, ChevronUp, Calendar, Compass, Send, Zap, X } from 'lucide-react';
@@ -7,86 +8,14 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface StorefrontProps {
   products: Product[];
+  storeSettings?: StoreSettings;
   onAddToCart: (product: Product, quantity: number) => void;
   cartCount: number;
 }
 
-const INITIAL_REVIEWS: Review[] = [
-  {
-    id: 'rev-1',
-    productId: 'p1', // Canola Oil
-    author: 'Haji Muhammad Yousaf',
-    city: 'Samundri',
-    rating: 5,
-    comment: 'Khushbu bohot achi hai aur khana bilkul halka banta hai. Cholestrol ke liye behtareen hai!',
-    date: '2026-07-15'
-  },
-  {
-    id: 'rev-2',
-    productId: 'p1',
-    author: 'Ayesha Bibi',
-    city: 'Faisalabad',
-    rating: 5,
-    comment: 'Pehle market se brand ka canola oil lete thay, ab direct Malik Oil se mangwate hain. Price bhi sasti hai aur khalis bhi hai.',
-    date: '2026-07-10'
-  },
-  {
-    id: 'rev-3',
-    productId: 'p2', // Mustard Oil (Sarson)
-    author: 'Chaudhary Bashir',
-    city: 'Okara',
-    rating: 5,
-    comment: 'Bilkul asli kachi ghani sarson ka tel hai. Achar ke liye behtareen aur sar me lagane ke liye lajawab.',
-    date: '2026-07-19'
-  },
-  {
-    id: 'rev-4',
-    productId: 'p2',
-    author: 'Sajid Mehmood',
-    city: 'Sahiwal',
-    rating: 4,
-    comment: 'Tel bilkul khalis hai aur khushbu bhi tez hai. Delivery thodi 1 din late hui par tel ki quality kamaal hai.',
-    date: '2026-07-12'
-  },
-  {
-    id: 'rev-5',
-    productId: 'p3', // Sesame Oil
-    author: 'Dr. Amjad',
-    city: 'Sahiwal',
-    rating: 5,
-    comment: 'Bohat hi pure khushbu hai. Joints ke dukhne par maalish ke liye use kiya, bohat hi jald faida hua.',
-    date: '2026-07-18'
-  },
-  {
-    id: 'rev-6',
-    productId: 'p4', // Taramira
-    author: 'Haji Aslam',
-    city: 'Gojra',
-    rating: 5,
-    comment: 'Sar ki khushki aur balon ke liye behtareen taramira oil hai. Thoda kora hota hai par bilkul natural hai.',
-    date: '2026-07-14'
-  },
-  {
-    id: 'rev-7',
-    productId: 'p5', // Khall
-    author: 'Malik Tariq',
-    city: 'Gojra',
-    rating: 5,
-    comment: 'Bhains ka doodh barh gaya hai aur khall bilkul saaf sutri hai baghair kisi milaawat ke. Highly recommended.',
-    date: '2026-07-17'
-  },
-  {
-    id: 'rev-8',
-    productId: 'p6', // Wanda
-    author: 'Sardar Ali',
-    city: 'Depalpur',
-    rating: 5,
-    comment: 'Wanda se janwar tandurust ho gaye hain aur doodh ki fat bhi barh gayi hai. Delivery direct farm par mil gayi.',
-    date: '2026-07-11'
-  }
-];
+const INITIAL_REVIEWS: Review[] = [];
 
-export default function Storefront({ products, onAddToCart, cartCount }: StorefrontProps) {
+export default function Storefront({ products, onAddToCart, cartCount, storeSettings = DEFAULT_STORE_SETTINGS }: StorefrontProps) {
   const activeProducts = products.filter(p => p.isActive !== false);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,9 +68,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
 
   useEffect(() => {
     const unsubscribe = subscribeToReviews(fetchedReviews => {
-      if (fetchedReviews.length > 0) {
-        setReviews(fetchedReviews);
-      }
+      setReviews(fetchedReviews);
     });
     return () => unsubscribe();
   }, []);
@@ -158,14 +85,15 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
   const [isStandaloneReviewModalOpen, setIsStandaloneReviewModalOpen] = useState(false);
   const [standaloneReviewProdId, setStandaloneReviewProdId] = useState<string>('p1');
 
+  const reviewPending = useRef(false);
   const handleAddReview = async (e: React.FormEvent, targetProdId?: string) => {
     e.preventDefault();
-    if (!newReviewAuthor || !newReviewCity || !newReviewComment) return;
+    if (reviewPending.current || !newReviewAuthor || !newReviewCity || !newReviewComment) return;
 
     const prodIdToUse = targetProdId || selectedProduct?.id || standaloneReviewProdId;
 
     const newRev: Review = {
-      id: 'rev-' + Date.now(),
+      id: 'rev-' + crypto.randomUUID(),
       productId: prodIdToUse,
       author: newReviewAuthor,
       city: newReviewCity,
@@ -174,11 +102,14 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
       date: new Date().toISOString().split('T')[0]
     };
 
+    reviewPending.current = true;
     try {
       await saveReview(newRev);
     } catch (err) {
       console.error('Failed to save review:', err);
-    }
+      alert('Review save nahi ho saka. Dobara koshish karein.');
+      return;
+    } finally { reviewPending.current = false; }
 
     // Reset Form
     setNewReviewAuthor('');
@@ -221,7 +152,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
   const generateWhatsAppBulkLink = () => {
     if (!selectedBulkProd) return '#';
     const text = `Assalam-o-Alaikum Malik Oils! Mujhe wholesale/bulk khareedari ki inquiry karni hai:\n\n*Product:* ${selectedBulkProd.name}\n*Quantity:* ${bulkQuantity} ${selectedBulkProd.unit}\n*Regular Price:* Rs. ${regularUnitPrice} / ${selectedBulkProd.unit}\n*Wholesale Price Offered:* Rs. ${wholesaleUnitPrice} / ${selectedBulkProd.unit}\n*Total Bulk Quote:* Rs. ${bulkTotalWholesale.toLocaleString()}\n*Total Savings:* Rs. ${bulkSavings.toLocaleString()}\n\nMeherbani farma kar booking aur Samundri unit se cargo delivery ki mazeed details bheinjiye. Shukriya!`;
-    return `https://wa.me/923007618236?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/${storeSettings.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;
   };
 
   // Cattle Feed Dairy Planner States
@@ -435,7 +366,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                     onClick={() => { setSelectedProduct(product); setModalQuantity(1); }}
                     className="h-56 bg-gray-50 border-b border-gray-100 flex items-center justify-center relative overflow-hidden group-hover:bg-amber-50/10 transition-colors cursor-pointer"
                   >
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={getProductImage(product.image)}
                       alt={product.name}
                       referrerPolicy="no-referrer"
@@ -485,7 +416,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                         const prodReviews = reviews.filter(r => r.productId === product.id);
                         const avgRating = prodReviews.length > 0
                           ? (prodReviews.reduce((sum, r) => sum + r.rating, 0) / prodReviews.length).toFixed(1)
-                          : '5.0';
+                          : '0.0';
                         const reviewCount = prodReviews.length;
                         return (
                           <div className="flex items-center gap-1 mt-1.5 mb-2">
@@ -1088,7 +1019,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
             <div className="mt-5 pt-4 border-t border-gray-200 flex justify-between items-center text-xs font-bold text-emerald-950">
               <span>Have specific health queries? Consult with our experts.</span>
               <a
-                href="https://wa.me/923007618236?text=Assalam-o-Alaikum! Mujhe oil selection aur health benefits ke hawale se poochhna hai."
+                href={`https://wa.me/${storeSettings.whatsapp.replace(/[^0-9]/g, '')}?text=Assalam-o-Alaikum! Mujhe oil selection aur health benefits ke hawale se poochhna hai.`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-4 py-2 bg-emerald-950 text-gold-500 hover:bg-emerald-900 rounded-xl transition-all flex items-center gap-1.5"
@@ -1167,7 +1098,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
 
             <div className="mt-5 pt-4 border-t border-gray-200">
               <a
-                href={`https://wa.me/923007618236?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Mujhe ${deliveryCity} ke liye delivery timing aur order confirmation chahiye.`)}`}
+                href={`https://wa.me/${storeSettings.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Mujhe ${deliveryCity} ke liye delivery timing aur order confirmation chahiye.`)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 bg-emerald-950 hover:bg-emerald-900 text-gold-500 font-bold text-xs tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
@@ -1206,7 +1137,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                 <span className="text-3xl font-black font-serif text-amber-400 block leading-none">
                   {reviews.length > 0
                     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-                    : '5.0'}
+                    : '0.0'}
                 </span>
                 <span className="text-[9px] text-emerald-300 uppercase font-bold mt-1 block">OUT OF 5.0</span>
               </div>
@@ -1217,7 +1148,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                   ))}
                 </div>
                 <span className="text-xs text-gray-300 font-medium mt-0.5 block">
-                  Based on <strong>{reviews.length}</strong> verified reviews
+                  Based on <strong>{reviews.length}</strong> customer reviews
                 </span>
               </div>
               <button
@@ -1291,7 +1222,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                               <span className="text-[10px] text-gray-400 font-normal">({rev.city})</span>
                             </h4>
                             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold inline-flex items-center gap-1 border border-emerald-200 mt-0.5">
-                              <Check className="w-2.5 h-2.5 text-emerald-600" /> Verified Buyer
+                              <Check className="w-2.5 h-2.5 text-emerald-600" /> Customer Review
                             </span>
                           </div>
                         </div>
@@ -1323,7 +1254,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-gray-200/60 flex justify-between items-center text-[10px] text-gray-400">
-                      <span>Malik Oil Expellers Verified Review</span>
+                      <span>Malik Oil Expellers Customer Review</span>
                       <span className="text-amber-600 font-bold">100% Pure & Organic</span>
                     </div>
                   </motion.div>
@@ -1625,7 +1556,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
 
                     <div className="mt-6">
                       <a
-                        href={`https://wa.me/923007618236?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Main ${subBagsCount} Bags per month ka dairy farm subscription plan book karwana chahta hoon (${subFrequency === 'monthly' ? 'Every 1st' : '1st & 15th'}). Meherbani farma kar commercial details bheinjiye.`)}`}
+                        href={`https://wa.me/${storeSettings.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Assalam-o-Alaikum Malik Oils! Main ${subBagsCount} Bags per month ka dairy farm subscription plan book karwana chahta hoon (${subFrequency === 'monthly' ? 'Every 1st' : '1st & 15th'}). Meherbani farma kar commercial details bheinjiye.`)}`}
                         target="_blank"
                         rel="noreferrer"
                         className="w-full py-3.5 bg-green-600 hover:bg-green-500 text-white font-bold text-xs tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-md"
@@ -1725,7 +1656,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
             </div>
           </div>
           <a
-            href="https://wa.me/923007618236?text=Hi%20Malik%20Oil%20Expellers,%20I%20want%20to%20place%20an%20order."
+            href={`https://wa.me/${storeSettings.whatsapp.replace(/[^0-9]/g, '')}?text=Hi%20Malik%20Oil%20Expellers,%20I%20want%20to%20place%20an%20order.`}
             target="_blank"
             rel="noreferrer"
             className="px-6 py-2.5 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-emerald-950 font-extrabold text-xs tracking-wider rounded-lg shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
@@ -1769,7 +1700,7 @@ export default function Storefront({ products, onAddToCart, cartCount }: Storefr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   {/* Visual Left */}
                   <div className="rounded-3xl overflow-hidden border border-gray-100 aspect-square relative group">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={getProductImage(selectedProduct.image)}
                       alt={selectedProduct.name}
                       referrerPolicy="no-referrer"

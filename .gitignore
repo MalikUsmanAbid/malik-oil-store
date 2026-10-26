@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+
+.test-runtime/
+test-results/
+playwright-report/
+*debug.log
+audit-results.json
+audit-production.json

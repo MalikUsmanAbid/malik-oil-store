@@ -2,7 +2,7 @@ import React from 'react';
 import { Droplets, ShieldCheck, Award, Heart, Phone, ShoppingBag, Leaf } from 'lucide-react';
 import { motion } from 'motion/react';
 import { StoreSettings } from '../types';
-import heroBanner from '../assets/images/malik_branded_hero_1784633050272.jpg';
+import heroBanner from '../assets/images/malik_branded_hero_1784633050272.webp';
 
 interface HeroProps {
   onOrderNowClick: () => void;
@@ -15,6 +15,7 @@ export default function Hero({ onOrderNowClick, storeSettings }: HeroProps) {
   const heroSubtitle = storeSettings?.heroSubtitle || 'Pure Oils, Trusted for Generations. Traditional wood-pressed natural oils and organic livestock feed.';
   const phone = storeSettings?.phone || '0300-7618236';
   const resolveHeroImage = (url?: string) => {
+    if (url && /^https?:\/\//.test(url) && !url.includes('/src/assets/')) return url;
     if (!url || url === '/images/hero.jpg' || url.includes('hero') || url.includes('/src/assets/')) return heroBanner;
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
     return heroBanner;
@@ -34,7 +35,7 @@ export default function Hero({ onOrderNowClick, storeSettings }: HeroProps) {
     <section className="relative bg-emerald-950 text-white overflow-hidden py-16 md:py-20 lg:py-24 border-b-4 border-gold-500">
       {/* Premium Background Image with Spotlight Overlay */}
       <div className="absolute inset-0 z-0">
-        <img
+        <img fetchPriority="high" decoding="async" width={1440} height={960}
           src={heroImage}
           alt="Malik Oils Banner Background"
           className="w-full h-full object-cover opacity-25 filter blur-[2px] scale-105 select-none"

@@ -1,8 +1,10 @@
 import React from 'react';
+import { DEFAULT_STORE_SETTINGS } from '../data/initialData';
+import type { StoreSettings } from '../types';
 import { ShieldCheck, History, Wheat, Settings, Leaf, MapPin } from 'lucide-react';
-import aboutImage from '../assets/images/seed_milling_factory_1784627556195.jpg';
+import aboutImage from '../assets/images/seed_milling_factory_1784627556195.webp';
 
-export default function About() {
+export default function About({ storeSettings = DEFAULT_STORE_SETTINGS }: { storeSettings?: StoreSettings }) {
   return (
     <section className="py-12 md:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 font-sans">
       {/* Brand history */}
@@ -42,7 +44,7 @@ export default function About() {
         <div className="lg:col-span-6 text-white p-8 rounded-3xl border border-gold-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between h-96 group">
           {/* Real-world background image */}
           <div className="absolute inset-0 z-0">
-            <img
+            <img loading="lazy" decoding="async"
               src={aboutImage}
               alt="Malik Oil Expeller Mill"
               referrerPolicy="no-referrer"
@@ -82,16 +84,16 @@ export default function About() {
         <MapPin className="w-10 h-10 text-gold-500 mx-auto animate-bounce" />
         <h3 className="font-serif font-black text-xl text-emerald-950 uppercase tracking-wide">VISIT OUR SAMUNDRI UNIT</h3>
         <p className="text-xs text-gray-500 max-w-xl mx-auto leading-relaxed">
-          Our main processing factory and warehouse is located right on Okara Road, Samundri. We welcome bulk clients, tankers, and dairy farming cooperators for custom extraction runs. Feel free to visit or call our helpline to organize a dispatch order.
+          Contact us to arrange a visit at our current store address. We welcome bulk clients, tankers, and dairy farming cooperators for custom extraction runs. Feel free to visit or call our helpline to organize a dispatch order.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <a
-            href="https://share.google/s8gQeKMpgupcyX4JE"
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(storeSettings.address)}`}
             target="_blank"
             rel="noreferrer"
             className="text-xs font-bold text-emerald-950 bg-gold-50 border border-gold-500/10 hover:border-gold-500 hover:bg-gold-500/10 transition-all px-5 py-2 rounded-full uppercase tracking-widest cursor-pointer"
           >
-            Okara Road, Samundri, Punjab, Pakistan
+            {storeSettings.address}
           </a>
           <a
             href="https://share.google/s8gQeKMpgupcyX4JE"
