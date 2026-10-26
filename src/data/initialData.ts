@@ -1,6 +1,6 @@
 import { Product, Order, Customer, TaxRate, StoreSettings, DiscountCode } from '../types';
-import heroBanner from '../assets/images/malik_branded_hero_1784633050272.jpg';
-import brandLogo from '../assets/images/malik_real_logo_1784634645165.jpg';
+import heroBanner from '../assets/images/malik_branded_hero_1784633050272.webp';
+import brandLogo from '../assets/images/malik_real_logo_1784634645165.webp';
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   storeName: 'Malik Oil Expellers',

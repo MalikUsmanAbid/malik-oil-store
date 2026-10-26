@@ -1,3 +1,4 @@
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { initializeApp, getApps } from 'firebase/app';
 import { initializeFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -25,3 +26,5 @@ const databaseId = config.firestoreDatabaseId && config.firestoreDatabaseId !== 
 export const db = initializeFirestore(app, { ignoreUndefinedProperties: true }, databaseId);
 export const auth = getAuth(app);
 export default app;
+
+export const appCheck = import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY ? initializeAppCheck(app, { provider: new ReCaptchaV3Provider(import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY), isTokenAutoRefreshEnabled: true }) : null;

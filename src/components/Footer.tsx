@@ -47,9 +47,6 @@ export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }:
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.262 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.414 9.863-9.84.002-2.63-1.023-5.101-2.885-6.967C16.586 1.982 14.111.96 11.488.96c-5.441 0-9.866 4.415-9.869 9.843-.001 1.76.47 3.472 1.365 4.981L1.944 21.8l6.194-1.626z" />
                 </svg>
               </a>
-              <a href="#" className="w-8 h-8 rounded-full bg-emerald-950 border border-emerald-900 flex items-center justify-center text-gray-300 hover:bg-gradient-to-tr hover:from-yellow-500 hover:to-purple-600 hover:text-white transition-all">
-                <Instagram className="w-4 h-4" />
-              </a>
             </div>
           </div>
 
@@ -106,10 +103,10 @@ export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }:
               CUSTOMER SERVICES
             </h4>
             <ul className="space-y-2 text-xs font-medium text-gray-400">
-              <li><a href="#" className="hover:text-gold-500 transition-colors">My Account</a></li>
+              <li><button onClick={onTrackOrderClick} className="hover:text-gold-500">Track your order</button></li>
               <li><span className="text-gray-500">Cart & Checkout</span></li>
               <li><span className="text-gray-500">Shipping Policy</span></li>
-              <li><span className="text-gray-500">Return & Refund Policy</span></li>
+              <li><button onClick={() => onNavClick('policies')} className="hover:text-gold-500">Delivery, Returns & Privacy</button></li>
               <li><span className="text-gray-500">Terms & Conditions</span></li>
             </ul>
           </div>

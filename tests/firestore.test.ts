@@ -39,7 +39,7 @@ test('only custom-claim admins manage orders; prices on existing orders are immu
   await assertSucceeds(getDocs(collection(db, 'orders')));
   await assertSucceeds(getDocs(collection(db, 'customers')));
   await assertSucceeds(updateDoc(doc(db, 'products/p1'), { price: 700 }));
-  await assertSucceeds(updateDoc(doc(db, 'orders/o1'), { paymentStatus: 'Paid' }));
+  await assertFails(updateDoc(doc(db, 'orders/o1'), { paymentStatus: 'Paid' }));
   await assertFails(updateDoc(doc(db, 'orders/o1'), { total: 1 }));
 });
 test('reviews require an authenticated author and bounded rating', async () => {
@@ -47,6 +47,6 @@ test('reviews require an authenticated author and bounded rating', async () => {
   const db = env.authenticatedContext('buyer').firestore();
   await assertFails(setDoc(doc(env.unauthenticatedContext().firestore(), 'reviews/r1'), review));
   await assertFails(setDoc(doc(db, 'reviews/r1'), { ...review, rating: 100 }));
-  await assertSucceeds(setDoc(doc(db, 'reviews/r1'), review));
+  await assertFails(setDoc(doc(db, 'reviews/r1'), review));
   await assertFails(updateDoc(doc(db, 'reviews/r1'), { rating: 1 }));
 });

@@ -10,23 +10,12 @@ service cloud.firestore {
       allow read: if admin() || (request.auth != null && resource.data.ownerUid == request.auth.uid);
       // Orders and stock reservations must be created together by the checkout server.
       allow create: if false;
-      allow update: if admin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderStatus', 'paymentStatus'])
-        && request.resource.data.orderStatus in ['Pending', 'Dispatched', 'Delivered', 'Cancelled']
-        && request.resource.data.paymentStatus in ['Paid', 'Unpaid'];
-      allow delete: if admin();
+      allow update, delete: if false; // All staff changes use the transactional server endpoint.
     }
     match /customers/{id} { allow read, write: if admin(); }
     match /reviews/{id} {
       allow read: if true;
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['id', 'productId', 'author', 'city', 'rating', 'comment', 'date', 'ownerUid'])
-        && request.resource.data.ownerUid == request.auth.uid && request.resource.data.id == id
-        && request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
-        && request.resource.data.author is string && request.resource.data.author.size() > 0 && request.resource.data.author.size() <= 100
-        && request.resource.data.city is string && request.resource.data.city.size() <= 100
-        && request.resource.data.comment is string && request.resource.data.comment.size() > 0 && request.resource.data.comment.size() <= 2000
-        && request.resource.data.date is string && request.resource.data.date.size() <= 40
-        && request.resource.data.productId is string && exists(/databases/$(database)/documents/products/$(request.resource.data.productId));
+      allow create: if false; // Validated and rate-limited by the review API.
       allow update, delete: if admin();
     }
     match /{document=**} { allow read, write: if false; }

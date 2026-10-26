@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
-import { loginAdminWithEmail, logoutAdmin, subscribeToAuth } from '../services/dbService';
+import { loginAdminWithEmail, logoutAdmin, subscribeToAuth, restockCancelledOrder } from '../services/dbService';
 import firebaseConfig from '../../firebase-applet-config.json';
 import {
   AreaChart,
@@ -22,8 +22,8 @@ import { TAX_RATES, INITIAL_DISCOUNT_CODES } from '../data/initialData';
 import { getProductImage } from '../utils/imageMapper';
 import { ShieldAlert, BarChart3, TrendingUp, Package, Users, Receipt, Plus, Settings, CheckCircle2, AlertTriangle, ArrowUpRight, Search, Edit2, Lock, Unlock, LogOut, Check, ShoppingBag, Download, Trash2, X, Sparkles, Globe, Phone, MapPin, Tag, Upload, Printer, Percent, DollarSign, ToggleLeft, ToggleRight, Bell, BellRing, Volume2, VolumeX, Zap, CheckCheck, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import heroBanner from '../assets/images/malik_branded_hero_1784633050272.jpg';
-import brandLogo from '../assets/images/malik_real_logo_1784634645165.jpg';
+import heroBanner from '../assets/images/malik_branded_hero_1784633050272.webp';
+import brandLogo from '../assets/images/malik_real_logo_1784634645165.webp';
 
 interface OrderToast {
   id: string;
@@ -67,6 +67,14 @@ export default function AdminDashboard({
   onUpdatePaymentStatus,
   onDeleteOrder,
 }: AdminDashboardProps) {
+  const actionPending = useRef(false);
+  const runAdminAction = async (action: () => void | Promise<void>): Promise<boolean> => {
+    if (actionPending.current) return false;
+    actionPending.current = true;
+    try { await action(); return true; }
+    catch (error) { alert(error instanceof Error ? error.message : 'Cloud save failed. Please try again.'); return false; }
+    finally { actionPending.current = false; }
+  };
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
   // Legacy PIN UI is kept only to avoid breaking saved UI state; it never grants access.
@@ -354,7 +362,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
     }
   };
 
-  const handleSaveStoreSettings = () => {
+  const handleSaveStoreSettings = async () => {
     const updatedSettings: StoreSettings = {
       storeName,
       tagline,
@@ -376,13 +384,13 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
       showCustomNotice,
     };
     if (onUpdateStoreSettings) {
-      onUpdateStoreSettings(updatedSettings);
+      if (!await runAdminAction(() => onUpdateStoreSettings(updatedSettings))) return;
     }
     setSettingsSavedToast(true);
     setTimeout(() => setSettingsSavedToast(false), 4000);
   };
 
-  const handleAddDiscountCode = (e: React.FormEvent) => {
+  const handleAddDiscountCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCodeName.trim()) return;
 
@@ -403,9 +411,8 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
     };
 
     const updated = [newDiscountObj, ...localDiscounts];
-    setLocalDiscounts(updated);
     if (onUpdateDiscountCodes) {
-      onUpdateDiscountCodes(updated);
+      if (!await runAdminAction(() => onUpdateDiscountCodes(updated))) return;
     }
 
     setNewCodeName('');
@@ -416,22 +423,20 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
     setTimeout(() => setDiscountSuccessMessage(null), 3500);
   };
 
-  const handleToggleDiscountStatus = (id: string) => {
+  const handleToggleDiscountStatus = async (id: string) => {
     const updated = localDiscounts.map(d => 
       d.id === id ? { ...d, isActive: !d.isActive } : d
     );
-    setLocalDiscounts(updated);
     if (onUpdateDiscountCodes) {
-      onUpdateDiscountCodes(updated);
+      if (!await runAdminAction(() => onUpdateDiscountCodes(updated))) return;
     }
   };
 
-  const handleDeleteDiscountCode = (id: string, codeName: string) => {
+  const handleDeleteDiscountCode = async (id: string, codeName: string) => {
     if (confirm(`Kya aap waqai promo code '${codeName}' ko delete karna chahte hain?`)) {
       const updated = localDiscounts.filter(d => d.id !== id);
-      setLocalDiscounts(updated);
-      if (onUpdateDiscountCodes) {
-        onUpdateDiscountCodes(updated);
+        if (onUpdateDiscountCodes) {
+        if (!await runAdminAction(() => onUpdateDiscountCodes(updated))) return;
       }
     }
   };
@@ -514,6 +519,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
   
   // Selected Details views
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
+  useEffect(() => { setSelectedOrderDetails(old => old ? orders.find(order => order.id === old.id) || null : null); }, [orders]);
   const [selectedInvoiceToPrint, setSelectedInvoiceToPrint] = useState<Order | null>(null);
 
   // Print Handler function (handles sandboxed iframes & direct window printing)
@@ -869,7 +875,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
     );
   }
 
-  const handleAddNewProductSubmit = (e: React.FormEvent) => {
+  const handleAddNewProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProdName || !newProdPrice || !newProdStock) {
       alert('Please fill out all product details.');
@@ -886,7 +892,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
       image: newProdImage,
       isActive: newProdIsActive,
     };
-    onAddProduct(newProduct);
+    if (!await runAdminAction(() => onAddProduct(newProduct))) return;
     
     // Reset Form
     setNewProdName('');
@@ -898,15 +904,15 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
     alert('Product added successfully to catalog!');
   };
 
-  const handleQuickPriceSave = (productId: string) => {
+  const handleQuickPriceSave = async (productId: string) => {
     const parsedPrice = Number(tempPrice);
     if (!isNaN(parsedPrice) && parsedPrice > 0) {
-      onUpdateProductPrice(productId, parsedPrice);
+      if (!await runAdminAction(() => onUpdateProductPrice(productId, parsedPrice))) return;
     }
     setEditingPriceId(null);
   };
 
-  const handleEditProductSubmit = (e: React.FormEvent) => {
+  const handleEditProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
     if (!editProdName || !editProdPrice) {
@@ -924,13 +930,13 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
       image: editProdImage,
       isActive: editProdIsActive,
     };
-    onUpdateProduct(updatedProduct);
+    if (!await runAdminAction(() => onUpdateProduct(updatedProduct))) return;
     setEditingProduct(null);
     alert('Product updated successfully!');
   };
 
-  const handleDeleteProductConfirm = (productId: string) => {
-    onDeleteProduct(productId);
+  const handleDeleteProductConfirm = async (productId: string) => {
+    if (!await runAdminAction(() => onDeleteProduct(productId))) return;
     setDeleteConfirmId(null);
     alert('Product removed successfully from catalog!');
   };
@@ -1636,7 +1642,10 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                           </td>
                           <td className="py-4 px-4">
                             <button
-                              onClick={() => onUpdatePaymentStatus(order.id, order.paymentStatus === 'Paid' ? 'Unpaid' : 'Paid')}
+                              onClick={() => {
+                                if (order.paymentStatus === 'Paid' && !confirm('Confirm any required refund or payment reversal has been handled outside the website.')) return;
+                                void runAdminAction(() => onUpdatePaymentStatus(order.id, order.paymentStatus === 'Paid' ? 'Unpaid' : 'Paid'));
+                              }}
                               className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold cursor-pointer transition-all ${
                                 order.paymentStatus === 'Paid'
                                   ? 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -1673,18 +1682,18 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                                 <span>PRINT</span>
                               </button>
                               <button
-                                onClick={() => {
-                                  if (window.confirm(`Kya aap invoice ${order.invoiceNo} (${order.customerName}) ko mukammal delete karna chahte hain?`)) {
+                                onClick={async () => {
+                                  if (window.confirm(`Kya aap invoice ${order.invoiceNo} (${order.customerName}) ko archive karna chahte hain?`)) {
                                     if (onDeleteOrder) {
-                                      onDeleteOrder(order.id);
+                                      if (!await runAdminAction(() => onDeleteOrder(order.id))) return;
                                     }
                                   }
                                 }}
                                 className="px-2 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white rounded font-bold text-[10px] tracking-wide transition-all cursor-pointer flex items-center gap-1 border border-rose-200"
-                                title="Delete order record permanently"
+                                title="Archive completed or cancelled order"
                               >
                                 <Trash2 className="w-3 h-3" />
-                                <span>DELETE</span>
+                                <span>ARCHIVE</span>
                               </button>
                             </div>
                           </td>
@@ -1741,7 +1750,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                         <span>Rs. {selectedOrderDetails.subtotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-gray-500">
-                        <span>GST Sales Tax:</span>
+                        <span>Recorded Tax:</span>
                         <span>Rs. {selectedOrderDetails.tax.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-gray-500">
@@ -1776,9 +1785,8 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                       {(['Pending', 'Dispatched', 'Delivered', 'Cancelled'] as Order['orderStatus'][]).map((status) => (
                         <button
                           key={status}
-                          onClick={() => {
-                            onUpdateOrderStatus(selectedOrderDetails.id, status);
-                            setSelectedOrderDetails({ ...selectedOrderDetails, orderStatus: status });
+                          onClick={async () => {
+                            if (!await runAdminAction(() => onUpdateOrderStatus(selectedOrderDetails.id, status))) return;
                           }}
                           className={`py-2 px-1 rounded-lg text-[9px] font-extrabold uppercase transition-all tracking-wide cursor-pointer text-center ${
                             selectedOrderDetails.orderStatus === status
@@ -1792,14 +1800,20 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                     </div>
                   </div>
 
+                  {selectedOrderDetails.orderStatus === 'Cancelled' && !selectedOrderDetails.stockReturned && (
+                    <button className="w-full rounded-xl border p-3 text-xs font-bold" onClick={async () => {
+                      if (!confirm('Confirm the goods have physically returned and can be sold again?')) return;
+                      if (await runAdminAction(() => restockCancelledOrder(selectedOrderDetails.id))) setSelectedOrderDetails({ ...selectedOrderDetails, stockReturned: true });
+                    }}>Confirm goods returned to stock</button>
+                  )}
                   {/* Delete Order Action */}
                   <div className="border-t border-gray-100 pt-3 flex justify-end">
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm(`Kya aap invoice ${selectedOrderDetails.invoiceNo} (${selectedOrderDetails.customerName}) ko HAMESHA ke liye delete karna chahte hain?`)) {
+                      onClick={async () => {
+                        if (window.confirm(`Kya aap invoice ${selectedOrderDetails.invoiceNo} (${selectedOrderDetails.customerName}) ko archive karna chahte hain?`)) {
                           if (onDeleteOrder) {
-                            onDeleteOrder(selectedOrderDetails.id);
+                            if (!await runAdminAction(() => onDeleteOrder(selectedOrderDetails.id))) return;
                           }
                           setSelectedOrderDetails(null);
                         }
@@ -1807,7 +1821,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                       className="px-4 py-2 bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2 border border-rose-200"
                     >
                       <Trash2 className="w-4 h-4" />
-                      <span>Delete This Order Permanently (آرڈر ڈلیٹ کریں)</span>
+                      <span>Archive This Order (ریکارڈ محفوظ کریں)</span>
                     </button>
                   </div>
                 </div>
@@ -2188,7 +2202,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                                 </label>
                                 {newProdImage && (
                                   <div className="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0 bg-gray-50">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                       src={newProdImage}
                                       alt="Upload preview"
                                       className="w-full h-full object-cover"
@@ -2287,7 +2301,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                     return (
                       <tr key={p.id} className={`transition-colors ${!isActive ? 'bg-gray-50/80 opacity-85' : 'hover:bg-gold-50/20'}`}>
                         <td className="py-4 px-4 flex items-center gap-3">
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={getProductImage(p.image)}
                             alt={p.name}
                             referrerPolicy="no-referrer"
@@ -2346,7 +2360,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                           {/* Stock Incrementor Decrementor */}
                           <div className="flex items-center border border-gray-200 rounded w-24 bg-gray-50 text-[10px] overflow-hidden">
                             <button
-                              onClick={() => onUpdateProductStock(p.id, Math.max(0, p.stock - 10))}
+                              onClick={() => runAdminAction(() => onUpdateProductStock(p.id, Math.max(0, p.stock - 10)))}
                               className="px-2 py-1 font-bold text-gray-600 hover:bg-gray-200 cursor-pointer"
                               title="Decrease 10"
                             >
@@ -2354,7 +2368,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                             </button>
                             <span className="flex-1 text-center font-bold text-emerald-950">{p.stock}</span>
                             <button
-                              onClick={() => onUpdateProductStock(p.id, p.stock + 10)}
+                              onClick={() => runAdminAction(() => onUpdateProductStock(p.id, p.stock + 10))}
                               className="px-2 py-1 font-bold text-gray-600 hover:bg-gray-200 cursor-pointer"
                               title="Increase 10"
                             >
@@ -2377,7 +2391,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                           {/* Direct Activate / Deactivate Toggle Button */}
                           <button
                             type="button"
-                            onClick={() => onUpdateProduct({ ...p, isActive: !isActive })}
+                            onClick={() => runAdminAction(() => onUpdateProduct({ ...p, isActive: !isActive }))}
                             className={`px-3 py-1.5 rounded-full font-extrabold text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs mx-auto border ${
                               isActive
                                 ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border-emerald-300'
@@ -2570,7 +2584,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                                 </label>
                                 {editProdImage && (
                                   <div className="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0 bg-gray-50">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                       src={editProdImage}
                                       alt="Upload preview"
                                       className="w-full h-full object-cover"
@@ -2911,7 +2925,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                   <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-200 shadow-sm text-center space-y-2">
                     <span className="text-[10px] uppercase font-extrabold text-gray-400 tracking-wider">Live Logo Preview</span>
                     <div className="p-3 bg-emerald-950 rounded-2xl border border-amber-400/30 flex items-center justify-center shadow-md">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={logoUrl || '/src/assets/images/malik_real_logo_1784634645165.jpg'}
                         alt="Active Logo Preview"
                         className="h-16 w-16 object-contain rounded-lg"
@@ -3149,7 +3163,7 @@ const [settingsSavedToast, setSettingsSavedToast] = useState(false);
                   <div className="space-y-3">
                     {/* Live Preview */}
                     <div className="relative w-full h-36 bg-gray-900 rounded-2xl overflow-hidden border-2 border-gold-500/30 shadow-inner group">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={heroImageUrl || '/src/assets/images/malik_branded_hero_1784633050272.jpg'}
                         alt="Hero Banner Preview"
                         className="w-full h-full object-cover opacity-80"

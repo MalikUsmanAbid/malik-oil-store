@@ -2,10 +2,11 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Storefront from './components/Storefront';
-import Cart from './components/Cart';
+const Cart = lazy(() => import('./components/Cart'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
-import About from './components/About';
-import OrderTracker from './components/OrderTracker';
+const OrderHelp = lazy(() => import('./components/OrderHelp'));
+const About = lazy(() => import('./components/About'));
+const OrderTracker = lazy(() => import('./components/OrderTracker'));
 import Footer from './components/Footer';
 
 import type { CheckoutRequest } from './utils/checkout';
@@ -58,6 +59,8 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('home'); // 'home' | 'about' | 'track'
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartHasOpened, setCartHasOpened] = useState(false);
+  useEffect(() => { if (isCartOpen) setCartHasOpened(true); }, [isCartOpen]);
 
   // Sync / Connection state
   const [isLoading, setIsLoading] = useState(false);
@@ -150,7 +153,7 @@ export default function App() {
       await dbAddProduct(newProduct);
     } catch (err) {
       console.error('Error adding product:', err);
-      alert('Failed to add product to Firestore.');
+      throw err;
     }
   };
 
@@ -159,7 +162,7 @@ export default function App() {
       await dbUpdateProduct(updatedProduct);
     } catch (err) {
       console.error('Error updating product:', err);
-      alert('Failed to update product in Firestore.');
+      throw err;
     }
   };
 
@@ -168,7 +171,7 @@ export default function App() {
       await dbDeleteProduct(productId);
     } catch (err) {
       console.error('Error deleting product:', err);
-      alert('Failed to delete product from Firestore.');
+      throw err;
     }
   };
 
@@ -177,6 +180,7 @@ export default function App() {
       await dbUpdateProductStock(productId, newStock);
     } catch (err) {
       console.error('Error updating stock:', err);
+      throw err;
     }
   };
 
@@ -185,6 +189,7 @@ export default function App() {
       await dbUpdateProductPrice(productId, newPrice);
     } catch (err) {
       console.error('Error updating price:', err);
+      throw err;
     }
   };
 
@@ -193,6 +198,7 @@ export default function App() {
       await dbUpdateOrderStatus(orderId, status);
     } catch (err) {
       console.error('Error updating order status:', err);
+      throw err;
     }
   };
 
@@ -201,6 +207,7 @@ export default function App() {
       await dbUpdatePaymentStatus(orderId, status);
     } catch (err) {
       console.error('Error updating payment status:', err);
+      throw err;
     }
   };
 
@@ -210,7 +217,7 @@ export default function App() {
       setOrders(prev => prev.filter(o => o.id !== orderId));
     } catch (err) {
       console.error('Error deleting order:', err);
-      alert('Order delete karne me masla aaya.');
+      throw err;
     }
   };
 
@@ -220,7 +227,7 @@ export default function App() {
       setStoreSettings(newSettings);
     } catch (err) {
       console.error('Error saving store settings:', err);
-      alert('Failed to save settings to Firestore.');
+      throw err;
     }
   };
 
@@ -233,6 +240,7 @@ export default function App() {
       setDiscountCodes(updatedCodes);
     } catch (err) {
       console.error('Error saving discount codes:', err);
+      throw err;
     }
   };
 
@@ -315,15 +323,17 @@ export default function App() {
                 />
                 <Storefront
                   products={products}
+                  storeSettings={storeSettings}
                   onAddToCart={handleAddToCart}
                   cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                 />
               </>
             )}
 
-            {activeTab === 'about' && <About />}
+            {activeTab === 'about' && <Suspense fallback={<p className="p-6">Loading...</p>}><About storeSettings={storeSettings} /></Suspense>}
 
-            {activeTab === 'track' && <OrderTracker />}
+            {activeTab === 'policies' && <Suspense fallback={<p className="p-6">Loading...</p>}><OrderHelp settings={storeSettings} /></Suspense>}
+            {activeTab === 'track' && <Suspense fallback={<p className="p-6">Loading tracking...</p>}><OrderTracker phone={storeSettings.phone} /></Suspense>}
           </>
         )}
       </main>
@@ -342,7 +352,7 @@ export default function App() {
       />
 
       {/* Shopping Cart Drawer */}
-      <Cart
+      {(isCartOpen || cartHasOpened) && <Suspense fallback={<p role="status" className="fixed bottom-4 right-4 bg-white p-4 shadow">Opening cart...</p>}><Cart
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cartItems={cartItems}
@@ -351,7 +361,7 @@ export default function App() {
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveFromCart}
         onPlaceOrder={handlePlaceOrder}
-      />
+      /></Suspense>}
     </div>
   );
 }

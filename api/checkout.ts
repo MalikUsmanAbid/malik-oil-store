@@ -1,19 +1,8 @@
 import { createHash } from 'node:crypto';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { services, verifyCaller, rateLimit } from '../server/services.js';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { calculateTotals, validateCheckout } from '../src/utils/checkout.js';
 import type { Order, Product, StoreSettings, DiscountCode } from '../src/types.js';
-
-function services() {
-  if (!getApps().length) {
-    const credentials = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-    if (!credentials) throw new Error('Checkout service is not configured.');
-    initializeApp({ credential: cert(JSON.parse(credentials)) });
-  }
-  return { auth: getAuth(), db: getFirestore(process.env.FIREBASE_DATABASE_ID || '(default)') };
-}
 
 export default async function handler(req: IncomingMessage & { body?: unknown }, res: ServerResponse) {
   res.setHeader('Content-Type', 'application/json');
@@ -25,7 +14,8 @@ export default async function handler(req: IncomingMessage & { body?: unknown },
     const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
     status = 401;
     if (!token) throw new Error('Please refresh and try again.');
-    const identity = await auth.verifyIdToken(token, true);
+    const identity = await verifyCaller(req);
+    status = 429; await rateLimit(req, 'checkout', identity.uid, 60, 60 * 60 * 1000);
     status = 400;
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     if (JSON.stringify(body || '').length > 20000) throw new Error('Checkout request is too large.');
@@ -80,7 +70,7 @@ export default async function handler(req: IncomingMessage & { body?: unknown },
         ...totals, ...(discount ? { discountCode: discount.code } : {}),
         paymentMethod: 'COD', paymentStatus: 'Unpaid', orderStatus: 'Pending'
       };
-      tx.create(orderRef, { ...order, requestFingerprint: fingerprint });
+      tx.create(orderRef, { ...order, accountingApplied: true, stockReturned: false, requestFingerprint: fingerprint });
       lines.forEach(({ product, quantity }, i) => tx.update(refs[i], { stock: product.stock - quantity }));
       tx.set(customerRef, { id: identity.uid, name: order.customerName, email: order.customerEmail, phone: order.customerPhone, address: order.address, city: order.city, totalOrders: (customer?.totalOrders || 0) + 1, totalSpent: (customer?.totalSpent || 0) + order.total, lastOrderDate: order.orderDate });
       tx.set(rateRef, { lastOrderAt: now, day: new Date(now).toISOString().slice(0, 10), count: sameDay ? limit.count + 1 : 1 });
@@ -92,7 +82,7 @@ export default async function handler(req: IncomingMessage & { body?: unknown },
     // the customer's request ID so a retry cannot create a second order.
     if (status === 400 && error && typeof error === 'object' && 'code' in error) status = 503;
     if (status === 500) console.error('Checkout service configuration failed.');
-    const message = status === 400 && error instanceof Error && !('code' in error) ? error.message : status === 401 ? 'Please refresh and try again.' : 'Checkout is temporarily unavailable. Please try again later.';
+    const message = status === 400 && error instanceof Error && !('code' in error) ? error.message : status === 429 ? 'Too many requests. Please wait before trying again.' : status === 401 ? 'Please refresh and try again.' : 'Checkout is temporarily unavailable. Please try again later.';
     res.writeHead(status).end(JSON.stringify({ error: message }));
   }
 }
