@@ -25,7 +25,11 @@ On 2026-10-26, PR #2 was merged at f842007 and deployed to https://malikoil.verc
 
 Both preview and production API checks verified tax=0, current-price validation, retry idempotency, private tracking, staff authorization and exactly-once stock return. A 390px Chrome browser completed the actual production checkout with no page errors. Synthetic verification orders were cancelled and archived and their inventory restored. The Firebase Admin/jwks-rsa startup incompatibility on Vercel was fixed with a scoped jose 5 override; server modules also load with native require(esm) support disabled. Production dependency audit remains at zero vulnerabilities.
 
-App Check is optional and is not enforced in this release: its public site key and domains still need registration. Persistent UID/source request limits and authenticated APIs are active. This release is not a claim that all possible security issues have been eliminated.
+On 2026-10-27, the production web app was registered with reCAPTCHA Enterprise (Fraud Defense), with domain verification enabled for malikoil.vercel.app. PR #3 adds the Enterprise client provider. Vercel production has the public site key and FIREBASE_APP_CHECK_REQUIRED=true. Authenticated requests without App Check were rejected by all four application APIs; a genuine browser successfully tracked an order and completed a zero-tax COD checkout after enforcement. Cloud Firestore App Check is configured as Enforced. Authentication remains in Monitoring for a separate staged rollout. No paid billing was activated; the project remains on Spark.
+
+Persistent UID/source request limits remain active. This release is not a claim that all possible security issues have been eliminated.
+
+The live Firestore negative check also denied an unauthenticated catalog read without App Check (the catalog's security rules otherwise allow public reads), confirming that service-level attestation enforcement is active.
 
 Live Firestore checks confirmed that the catalog is publicly readable, customer/order collection reads are denied to public visitors, and anonymous price changes are denied. The deployed application's error/fatal log query returned no records during the release checks.
 

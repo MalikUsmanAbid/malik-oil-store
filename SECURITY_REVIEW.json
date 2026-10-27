@@ -1,12 +1,12 @@
 {
   "score": 4,
-  "summary": "Staff claims, private order/customer reads and server-only order/review creation were released on 2026-10-26. Emulator security tests and deployed checkout tests pass. This is a scoped application review, not a guarantee against every security issue.",
+  "summary": "Staff claims, private data rules and transactional checkout are live. On 2026-10-27, Enterprise App Check was registered, required on all four application APIs and configured as Enforced for Cloud Firestore. Missing-token API tests and genuine-browser tracking/checkout checks pass. This is a scoped review, not a guarantee against every security issue.",
   "findings": [
     {
-      "check": "App Check enforcement",
+      "check": "Authentication App Check rollout",
       "severity": "minor",
-      "issue": "Authenticated APIs and persistent UID/source request limits are active, but App Check remains optional because its public site key and domains have not been registered.",
-      "recommendation": "Register the production web app with App Check, configure the public site key and allowed domains, validate genuine browser requests, then enable required token verification."
+      "issue": "Application APIs require App Check and Cloud Firestore is configured as Enforced. Firebase Authentication remains in Monitoring; direct authentication operations are not yet protected by service-level App Check enforcement.",
+      "recommendation": "Monitor verified authentication traffic and verify a fresh staff email/password login before separately enforcing App Check for Authentication. Monitor the no-cost assessment allowance; no paid billing has been activated."
     }
   ]
 }
