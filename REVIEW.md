@@ -2,6 +2,8 @@
 
 ## Follow-up — 2026-10-31
 
+The fresh production dependency audit identified newly published glob/minimatch resource-exhaustion advisories and the RE2JS lookbehind denial-of-service advisory. RE2JS is pinned to patched 2.8.7. A scoped override gives rimraf 5.0.10 patched glob 14.0.2 or newer within major 14, retaining the named async/sync API used by rimraf; legacy CLI glob callers are not globally overridden. The patched production audit reports zero known vulnerabilities. Async/sync glob operation, already-aborted cancellation and Firebase Admin loading with native require(esm) disabled were verified. This statement covers production dependencies, not a claim of a clean audit for the entire development toolchain.
+
 Node.js is pinned to the locally verified 24.x major. The previous open-ended >=22 range selected Node 26 in Vercel build logs and produced unsupported-engine warnings for the Firebase toolchain. Patch/security updates within Node 24 remain platform-managed.
 
 The official Firebase App Check API showed Authentication still UNENFORCED despite the earlier owner-reported console change. Authentication was changed to ENFORCED through the official API; Firestore remained ENFORCED. After propagation, the client SDK's anonymous login without App Check was rejected with `auth/firebase-app-check-token-is-invalid.`. The owner confirmed a fresh staff dashboard login after the actual enforcement change. No paid upgrade, replay-protection change or debug bypass was used. Earlier Monitoring references below describe the original rollout stage.

@@ -49,6 +49,8 @@
     "node": "24.x"
   },
   "overrides": {
+    "re2js": "2.8.7",
+    "rimraf@5.0.10": { "glob": "^14.0.2" },
     "@grpc/grpc-js": "1.13.6",
     "jwks-rsa": { "jose": "^5.10.0" }
   }
