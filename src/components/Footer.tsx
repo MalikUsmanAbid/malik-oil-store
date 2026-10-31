@@ -57,38 +57,22 @@ export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }:
             </h4>
             <ul className="space-y-2 text-xs font-bold text-gray-400">
               <li>
-                <button onClick={() => onNavClick('home')} className="hover:text-gold-500 transition-colors uppercase cursor-pointer">
-                  Home
-                </button>
+                <a href="/" className="hover:text-gold-500 transition-colors uppercase cursor-pointer">Home</a>
               </li>
               <li>
-                <button onClick={() => onNavClick('about')} className="hover:text-gold-500 transition-colors uppercase cursor-pointer">
-                  About Us
-                </button>
+                <a href="/about" className="hover:text-gold-500 transition-colors uppercase cursor-pointer">About Us</a>
               </li>
               <li>
-                <a
-                  href="#products-section"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onNavClick('home');
-                    setTimeout(() => {
-                      document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
-                    }, 100);
-                  }}
-                  className="hover:text-gold-500 transition-colors uppercase"
-                >
-                  Our Products
+                <a href="/products" className="hover:text-gold-500">Our Products</a>
+              </li>
+              <li>
+                <a href="/track" className="hover:text-gold-500 transition-colors uppercase cursor-pointer">
+                  Order Tracking
                 </a>
               </li>
               <li>
-                <button onClick={onTrackOrderClick} className="hover:text-gold-500 transition-colors uppercase cursor-pointer">
-                  Order Tracking
-                </button>
-              </li>
-              <li>
                 <a
-                  href="#contact-section"
+                  href="/contact"
                   className="hover:text-gold-500 transition-colors uppercase"
                 >
                   Contact Us
@@ -103,11 +87,11 @@ export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }:
               CUSTOMER SERVICES
             </h4>
             <ul className="space-y-2 text-xs font-medium text-gray-400">
-              <li><button onClick={onTrackOrderClick} className="hover:text-gold-500">Track your order</button></li>
+              <li><a href="/track" className="hover:text-gold-500">Track your order</a></li>
               <li><span className="text-gray-500">Cart & Checkout</span></li>
-              <li><span className="text-gray-500">Shipping Policy</span></li>
-              <li><button onClick={() => onNavClick('policies')} className="hover:text-gold-500">Delivery, Returns & Privacy</button></li>
-              <li><span className="text-gray-500">Terms & Conditions</span></li>
+              <li><a href="/policies" className="hover:text-gold-500">Shipping & returns</a></li>
+              <li><a href="/policies" className="hover:text-gold-500">Delivery, Returns & Privacy</a></li>
+              <li><a href="/faq" className="hover:text-gold-500">Ordering FAQs</a></li>
             </ul>
           </div>
 
@@ -138,7 +122,7 @@ export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }:
               </li>
               <li className="flex items-start gap-2.5">
                 <Clock className="w-4 h-4 text-gold-500 shrink-0 mt-0.5" />
-                <span className="text-gray-400">Mon - Sat: 9:00 AM - 8:00 PM</span>
+                <span className="text-gray-400">Contact us to confirm opening hours</span>
               </li>
             </ul>
 
@@ -146,7 +130,7 @@ export default function Footer({ onNavClick, onTrackOrderClick, storeSettings }:
             <div className="pt-2 border-t border-emerald-950/50 flex items-center gap-3">
               <div className="p-1.5 bg-emerald-950/40 border border-gold-500/10 rounded text-gold-500 hover:border-gold-500/40 transition-all flex items-center gap-1.5">
                 <Award className="w-4 h-4" />
-                <span className="text-[9px] font-bold tracking-widest uppercase">Premium Quality 100% Guaranteed</span>
+                <span className="text-[9px] font-bold tracking-widest uppercase">Product & order support</span>
               </div>
             </div>
           </div>

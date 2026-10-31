@@ -1,12 +1,6 @@
 {
   "score": 4,
   "summary": "Staff claims, private data rules and transactional checkout are live. On 2026-10-27, Enterprise App Check was registered, required on all four application APIs and configured as Enforced for Cloud Firestore. Missing-token API tests and genuine-browser tracking/checkout checks pass. This is a scoped review, not a guarantee against every security issue.",
-  "findings": [
-    {
-      "check": "Authentication App Check rollout",
-      "severity": "minor",
-      "issue": "Application APIs require App Check and Cloud Firestore is configured as Enforced. Firebase Authentication remains in Monitoring; direct authentication operations are not yet protected by service-level App Check enforcement.",
-      "recommendation": "Monitor verified authentication traffic and verify a fresh staff email/password login before separately enforcing App Check for Authentication. Monitor the no-cost assessment allowance; no paid billing has been activated."
-    }
-  ]
+  "findings": [],
+  "authenticationFollowup": "On 2026-10-31 the official App Check API showed Authentication UNENFORCED despite the earlier owner-reported console change. It was set to ENFORCED through the official API. After propagation, a real SDK signInAnonymously request without App Check was rejected with auth/firebase-app-check-token-is-invalid. The owner confirmed a fresh staff dashboard login after the actual change. Firestore remains ENFORCED. No billing upgrade or replay-protection change was made."
 }

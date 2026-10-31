@@ -21,6 +21,13 @@ export default function Storefront({ products, onAddToCart, cartCount, storeSett
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const linkedProductOpened = useRef(false);
+  useEffect(() => {
+    if (linkedProductOpened.current) return;
+    const id = new URLSearchParams(window.location.search).get('product');
+    const product = activeProducts.find(item => item.id === id);
+    if (product) { setSelectedProduct(product); linkedProductOpened.current = true; }
+  }, [products]);
   const [modalQuantity, setModalQuantity] = useState(1);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 

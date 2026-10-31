@@ -28,6 +28,8 @@
     "api",
     "server",
     "tests",
+    "scripts/prerender.tsx",
+    "scripts/check-seo.ts",
     "vite.config.ts",
     "playwright.config.ts"
   ],

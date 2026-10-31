@@ -95,93 +95,29 @@ export default function Header({
       {/* Main Navigation Row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
         {/* Malik Brand Logo - Matching the Emblem style in image */}
-        <div className="cursor-pointer flex items-center" onClick={() => setActiveTab('home')}>
+        <a href="/" aria-label="Malik Oil Expellers home" className="flex items-center">
           <FullBrandLogo
             logoUrl={storeSettings?.logoUrl}
             storeName={storeSettings?.storeName}
             tagline={storeSettings?.tagline}
             estYear={storeSettings?.estYear}
           />
-        </div>
+        </a>
 
         {/* Desktop Menu - Matches style of image (Simple capital letters) */}
-        <nav className="hidden lg:flex items-center gap-8 text-xs font-bold tracking-widest text-emerald-950">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`cursor-pointer hover:text-gold-600 transition-colors py-1 relative ${
-              activeTab === 'home' ? 'text-gold-600 border-b-2 border-gold-500' : ''
-            }`}
-          >
-            HOME
-          </button>
-          <button
-            onClick={() => setActiveTab('about')}
-            className={`cursor-pointer hover:text-gold-600 transition-colors py-1 relative ${
-              activeTab === 'about' ? 'text-gold-600 border-b-2 border-gold-500' : ''
-            }`}
-          >
-            ABOUT US
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('home');
-              setTimeout(() => {
-                const el = document.getElementById('products-section');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
-            }}
-            className="cursor-pointer hover:text-gold-600 transition-colors py-1"
-          >
-            PRODUCTS
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('home');
-              setTimeout(() => {
-                const el = document.getElementById('products-section');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
-            }}
-            className="cursor-pointer hover:text-gold-600 transition-colors py-1"
-          >
-            SHOP
-          </button>
-          <button
-            onClick={onTrackOrderClick}
-            className={`cursor-pointer hover:text-gold-600 transition-colors py-1 relative ${
-              activeTab === 'track' ? 'text-gold-600 border-b-2 border-gold-500' : ''
-            }`}
-          >
-            ORDER TRACKING
-          </button>
-          <button
-            onClick={() => {
-              const el = document.getElementById('contact-section');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="cursor-pointer hover:text-gold-600 transition-colors py-1"
-          >
-            CONTACT US
-          </button>
-        </nav>
+        <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-6 text-xs font-bold tracking-wide text-emerald-950">
+<a href="/" className="hover:text-gold-600 py-2">HOME</a>
+<a href="/about" className="hover:text-gold-600 py-2">ABOUT</a>
+<a href="/products" className="hover:text-gold-600 py-2">PRODUCTS</a>
+<a href="/#products-section" className="hover:text-gold-600 py-2">SHOP</a>
+<a href="/track" className="hover:text-gold-600 py-2">TRACK ORDER</a>
+<a href="/contact" className="hover:text-gold-600 py-2">CONTACT</a>
+</nav>
 
         {/* Secondary Icons Block */}
         <div className="flex items-center gap-4">
           {/* Quick Search */}
-          <div className="relative hidden sm:block">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="h-3.5 w-3.5 text-gray-400" />
-            </span>
-            <input
-              type="text"
-              placeholder="Search Pure Oils..."
-              onClick={() => {
-                const el = document.getElementById('products-section');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="text-xs bg-gray-50 border border-gray-200 rounded-full pl-9 pr-4 py-1.5 w-40 focus:outline-none focus:ring-1 focus:ring-gold-500 focus:w-48 transition-all"
-            />
-          </div>
+          <a href="/#products-section" className="hidden sm:block text-xs underline">Search products</a>
 
           {/* Cart Icon with custom counter */}
           <motion.button
@@ -206,7 +142,7 @@ export default function Header({
               )}
             </AnimatePresence>
           </motion.button>
-          {/* Shopify Admin Dashboard switch */}
+          {/* Store Admin Dashboard switch */}
           <button
             onClick={onAdminToggle}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold tracking-wide shadow-sm transition-all border duration-200 cursor-pointer ${
@@ -216,23 +152,13 @@ export default function Header({
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>{isAdmin ? 'Storefront View' : 'Shopify Admin'}</span>
+            <span>{isAdmin ? 'Storefront View' : 'Store Admin'}</span>
           </button>
         </div>
       </div>
 
       {/* Mobile Nav bar helper */}
-      <div className="lg:hidden flex justify-around bg-emerald-950 text-white text-[10px] font-bold tracking-wider py-2.5 border-t border-emerald-900">
-        <button onClick={() => setActiveTab('home')} className={`px-2 ${activeTab === 'home' ? 'text-gold-500' : 'text-gray-300'}`}>HOME</button>
-        <button onClick={() => setActiveTab('about')} className={`px-2 ${activeTab === 'about' ? 'text-gold-500' : 'text-gray-300'}`}>ABOUT</button>
-        <button onClick={() => {
-          setActiveTab('home');
-          setTimeout(() => {
-            document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
-        }} className="px-2 text-gray-300">PRODUCTS</button>
-        <button onClick={onTrackOrderClick} className={`px-2 ${activeTab === 'track' ? 'text-gold-500' : 'text-gray-300'}`}>TRACK</button>
-      </div>
+      <nav aria-label="Mobile navigation" className="lg:hidden flex justify-around bg-emerald-950 text-white text-xs py-3"><a href="/">HOME</a><a href="/products">PRODUCTS</a><a href="/faq">FAQs</a><a href="/track">TRACK</a><a href="/contact">CONTACT</a></nav>
     </header>
   );
 }

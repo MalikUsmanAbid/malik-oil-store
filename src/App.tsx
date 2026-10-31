@@ -4,10 +4,9 @@ import Hero from './components/Hero';
 import Storefront from './components/Storefront';
 const Cart = lazy(() => import('./components/Cart'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
-const OrderHelp = lazy(() => import('./components/OrderHelp'));
-const About = lazy(() => import('./components/About'));
 const OrderTracker = lazy(() => import('./components/OrderTracker'));
 import Footer from './components/Footer';
+import PublicContent from './components/PublicContent';
 
 import type { CheckoutRequest } from './utils/checkout';
 import { Product, Order, Customer, StoreSettings, DiscountCode } from './types';
@@ -57,7 +56,11 @@ export default function App() {
 
   // Navigation & UI state
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('home'); // 'home' | 'about' | 'track'
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    return path === '/' ? 'home' : path === '/track' ? 'track' : path.slice(1);
+  });
+  const publicPath = activeTab === 'home' ? '/' : `/${activeTab}`;
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartHasOpened, setCartHasOpened] = useState(false);
   useEffect(() => { if (isCartOpen) setCartHasOpened(true); }, [isCartOpen]);
@@ -327,12 +330,11 @@ export default function App() {
                   onAddToCart={handleAddToCart}
                   cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                 />
+                <PublicContent path="/" mainHeading={false} />
               </>
             )}
 
-            {activeTab === 'about' && <Suspense fallback={<p className="p-6">Loading...</p>}><About storeSettings={storeSettings} /></Suspense>}
-
-            {activeTab === 'policies' && <Suspense fallback={<p className="p-6">Loading...</p>}><OrderHelp settings={storeSettings} /></Suspense>}
+            {activeTab !== 'home' && activeTab !== 'track' && <PublicContent path={publicPath} />}
             {activeTab === 'track' && <Suspense fallback={<p className="p-6">Loading tracking...</p>}><OrderTracker phone={storeSettings.phone} /></Suspense>}
           </>
         )}

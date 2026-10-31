@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && tsx scripts/prerender.tsx",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test": "tsx --test tests/checkout.test.ts",
+    "test:seo": "tsx scripts/check-seo.ts",
+    "test:seo-browser": "playwright test --config playwright.seo.config.ts",
     "test:security": "firebase emulators:exec --only firestore,auth --project demo-malik-oil \"tsx --test tests/firestore.test.ts tests/checkout-api.test.ts\"",
     "test:browser": "playwright test"
   },
