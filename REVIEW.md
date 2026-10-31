@@ -2,6 +2,8 @@
 
 ## Follow-up — 2026-10-31
 
+Node.js is pinned to the locally verified 24.x major. The previous open-ended >=22 range selected Node 26 in Vercel build logs and produced unsupported-engine warnings for the Firebase toolchain. Patch/security updates within Node 24 remain platform-managed.
+
 The official Firebase App Check API showed Authentication still UNENFORCED despite the earlier owner-reported console change. Authentication was changed to ENFORCED through the official API; Firestore remained ENFORCED. After propagation, the client SDK's anonymous login without App Check was rejected with `auth/firebase-app-check-token-is-invalid.`. The owner confirmed a fresh staff dashboard login after the actual enforcement change. No paid upgrade, replay-protection change or debug bypass was used. Earlier Monitoring references below describe the original rollout stage.
 
 SEO/GEO/AEO research and implementation details are in [SEO_REVIEW.md](SEO_REVIEW.md). Public content now has static HTML, clean URLs, crawlable navigation, product guides, direct answers, accurate owner-supplied address/Maps details, canonical/social metadata, structured data, a sitemap and robots.txt. Static information pages require no storefront JavaScript. Search Console submission, indexing, rankings and real-user speed gains are not claimed as completed or measured.
