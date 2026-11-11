@@ -1,5 +1,29 @@
 # Malik Oil Expellers
 
+
+## Visual project guide
+
+A React and Vite storefront with Firebase Authentication, Firestore and authenticated Vercel APIs for catalog browsing, cash-on-delivery ordering and staff operations.
+
+These five original illustrations summarize the documented project. They are **documentation graphics, not application screenshots or evidence of production readiness**.
+
+![Malik Oil Store project overview](docs/portfolio/01-cover.svg)
+
+| Features | Architecture |
+| --- | --- |
+| ![Feature overview](docs/portfolio/02-features.svg) | ![Architecture overview](docs/portfolio/03-architecture.svg) |
+
+| Workflow | Technology |
+| --- | --- |
+| ![Workflow overview](docs/portfolio/04-workflow.svg) | ![Technology overview](docs/portfolio/05-stack.svg) |
+
+**Scope and verification:** Server credentials and configured services are required. Static-only hosting cannot accept orders.
+
+[Developer portfolio](https://developer-folio-nov04-ab.glovedlark8.chatgpt.site) (ChatGPT sign-in required) · [Usman Dev](https://github.com/MalikUsmanAbid)
+
+---
+
+
 React/Vite storefront, Firebase Authentication/Firestore and authenticated Vercel APIs.
 
 ## Verification
