@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/MalikUsmanAbid/MalikUsmanAbid/main/assets/usman-dev-logo.png" alt="Usman Dev — Full-Stack Developer" width="120" /></p>
+
 # Malik Oil Expellers
 
 
@@ -70,3 +72,7 @@ Deploy server/client/rules together. Do not publish the new client with missing 
 Optimized source photos total about 0.60 MB versus 6.92 MB (91% smaller). Logo/favicon use a small WebP. Secondary screens/PDF/admin tools are loaded on demand; Firebase loads after the storefront's first render. Hashed assets receive immutable caching. Run scripts/optimize-images.py with Pillow to reproduce WebP assets.
 
 The site uses configured contacts consistently, removes placeholder account/social links and verified-buyer claims, and includes delivery/returns/privacy help. Business-specific return commitments and product claims still require the owner's review; the text does not invent delivery/refund guarantees.
+
+## Developer contact
+
+[Email](mailto:usmandev234@gmail.com) · [WhatsApp](https://wa.me/923157543808) · [Facebook](https://www.facebook.com/profile.php?id=61594398140960) · [GitHub](https://github.com/MalikUsmanAbid)
