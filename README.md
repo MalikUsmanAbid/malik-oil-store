@@ -1,32 +1,14 @@
-<p align="center"><img src="https://raw.githubusercontent.com/MalikUsmanAbid/MalikUsmanAbid/main/assets/usman-dev-logo.png" alt="Usman Dev — Full-Stack Developer" width="120" /></p>
-
 # Malik Oil Expellers
-
-
-## Visual project guide
 
 A React and Vite storefront with Firebase Authentication, Firestore and authenticated Vercel APIs for catalog browsing, cash-on-delivery ordering and staff operations.
 
-These five original illustrations summarize the documented project. They are **documentation graphics, not application screenshots or evidence of production readiness**.
+![malik-oil-store project overview](docs/portfolio/01-cover.svg)
 
-![Malik Oil Store project overview](docs/portfolio/01-cover.svg)
+<sub>Project overview illustration; not an application screenshot.</sub>
 
-| Features | Architecture |
-| --- | --- |
-| ![Feature overview](docs/portfolio/02-features.svg) | ![Architecture overview](docs/portfolio/03-architecture.svg) |
+**Status:** Server credentials and configured services are required. Static-only hosting cannot accept orders.
 
-| Workflow | Technology |
-| --- | --- |
-| ![Workflow overview](docs/portfolio/04-workflow.svg) | ![Technology overview](docs/portfolio/05-stack.svg) |
-
-**Scope and verification:** Server credentials and configured services are required. Static-only hosting cannot accept orders.
-
-[Developer portfolio](https://malikusmandev.vercel.app) · [Usman Dev](https://github.com/MalikUsmanAbid)
-
----
-
-
-React/Vite storefront, Firebase Authentication/Firestore and authenticated Vercel APIs.
+[Overview graphics](docs/portfolio/) · [Developer portfolio](https://malikusmandev.vercel.app) · [Contact](mailto:usmandev234@gmail.com)
 
 ## Verification
 
